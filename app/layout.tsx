@@ -5,6 +5,7 @@ import LocalFont from "next/font/local";
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { OpenAISessionProvider } from "@/components/providers/openai-session-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,12 +34,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} dark ${arabicFont.variable} font-sans ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${arabicFont.variable} font-sans ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <TooltipProvider>
-          <OpenAISessionProvider>{children}</OpenAISessionProvider>
-        </TooltipProvider>
+        <ThemeProvider>
+          <TooltipProvider>
+            <OpenAISessionProvider>{children}</OpenAISessionProvider>
+          </TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
