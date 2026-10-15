@@ -1,3 +1,4 @@
+import { Verses } from "@/components/verses/verses";
 import { qfClient } from "@/lib/qf-client";
 import { ChapterId } from "@quranjs/api";
 import { notFound } from "next/navigation";
@@ -31,46 +32,7 @@ export default async function Page({
 
   return (
     <main className="max-w-2xl w-full mx-auto border-x">
-      <ul
-        className="font-arabic space-y-6 divide-y divide-border"
-        lang="ar"
-        dir="rtl"
-      >
-        {verses.map((verse) => {
-          const wholeVerse = verse.textIndopakNastaleeq!;
-
-          const ayahMarker = wholeVerse.split(" ").at(-1);
-          const words = verse.words?.filter(
-            (word) => word.charTypeName !== "end",
-          );
-
-          return (
-            <li className="text-3xl p-4" key={verse.id}>
-              <div className="tracking-normal text-balance leading-[2.5]">
-                {words?.map((word) => {
-                  return (
-                    <span
-                      className="font-light hover:font-medium hover:text-primary transition-all duration-100 cursor-pointer"
-                      key={word.id}
-                    >
-                      {
-                        (word as never as { textIndopakNastaleeq: string })
-                          .textIndopakNastaleeq
-                      }{" "}
-                    </span>
-                  );
-                })}
-                <span
-                  className="whitespace-nowrap"
-                  aria-label={`Ayah ${verse.verseNumber}`}
-                >
-                  {ayahMarker}
-                </span>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+      <Verses verses={verses} />
     </main>
   );
 }
