@@ -1,14 +1,16 @@
 "use client";
 import { Verse } from "@quranjs/api";
-import { use, useRef, useState, useTransition } from "react";
+import { use, useEffect, useRef, useState, useTransition } from "react";
 import { OpenAISessionContext } from "../providers/openai-session-provider";
 import { Button } from "../ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { CancelIcon, Mic01Icon } from "@hugeicons/core-free-icons";
+import { Mic01Icon } from "@hugeicons/core-free-icons";
 import AudioWave02Icon from "@hugeicons/core-free-icons/AudioWave02Icon";
 import { motion } from "motion/react";
 import { cn } from "cn";
 import { play } from "cuelume";
+import { normalizeQuranEnTranslation } from "@/lib/utils";
+import { useChapterStore } from "@/stores/chapter-store";
 
 export function Verses({ verses }: { verses: Verse[] }) {
   const { clientSecret } = use(OpenAISessionContext);
@@ -19,6 +21,14 @@ export function Verses({ verses }: { verses: Verse[] }) {
 
   const finalRef = useRef("");
   const draftRef = useRef("");
+
+  const { selectedVerse, setSelectedVerse } = useChapterStore();
+
+  useEffect(() => {
+    const firstVerse = verses[0];
+    console.log("setting first verse: ", firstVerse);
+    setSelectedVerse(firstVerse);
+  }, [verses, setSelectedVerse]);
 
   const handleOnPracticeAyah = (verseId: number) => {
     finalRef.current = "";
@@ -94,7 +104,7 @@ export function Verses({ verses }: { verses: Verse[] }) {
   };
 
   return (
-    <ul className="space-y-6 divide-y divide-border relative">
+    <ul className="space-y-6 divide-y snap-y snap-mandatory scrollbar-none  overflow-y-auto divide-border relative">
       {verses.map((verse) => {
         const wholeVerse = verse.textIndopakNastaleeq!;
 
@@ -103,16 +113,24 @@ export function Verses({ verses }: { verses: Verse[] }) {
           (word) => word.charTypeName !== "end",
         );
 
+        const isActive = selectedVerse && verse.id === selectedVerse.id;
+
         return (
           <li
-            className="text-3xl p-4 w-full "
+            className={cn(
+              "p-4 py-6 w-full snap-start",
+              !isActive && "opacity-40",
+            )}
             // shadow-[inset_0px_0px_4px_1px] shadow-green-300
             key={verse.id}
+            onClick={() => {
+              setSelectedVerse(verse);
+            }}
           >
             <div
               lang="ar"
               dir="rtl"
-              className="tracking-normal font-arabic text-balance leading-[2.5]"
+              className="tracking-normal text-3xl font-arabic text-balance leading-[2.5]"
             >
               {words?.map((word) => {
                 return (
@@ -134,8 +152,14 @@ export function Verses({ verses }: { verses: Verse[] }) {
                 {ayahMarker}
               </span>
             </div>
+            {Array.isArray(verse.translations) && (
+              <div className="text-foreground/80 mt-6">
+                {normalizeQuranEnTranslation(verse?.translations[0].text)}
+              </div>
+            )}
+
             {/* actions */}
-            <div className="mt-8">
+            <div className="mt-4 hidden">
               <Button
                 onClick={() => handleOnPracticeAyah(verse.id)}
                 variant={"ghost"}
