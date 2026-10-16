@@ -1,7 +1,5 @@
 <div align="center">
-
-## 📖 Quran Learning Platform
-
+<h1> 📖 Quran Learning Platform</h1>
 </div>
 
 A Quran recitation assistant — pick a chapter, read verses in Arabic with translation, then record yourself and get AI feedback on your recitation.
