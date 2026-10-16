@@ -4,11 +4,7 @@
 
 </div>
 
-```diff
-- Disclaimer: This project is under active development. Features and documentation may change; contributions to improve the docs are welcome.
-```
-
-The Quran Learning Platform is a assistant for anyone learning to recite the Quran. Browse through the chapters, read the verses in Arabic with an English translation alongside, then record yourself reciting a verse — the app transcribes your recitation and uses AI to give you feedback on how you did, like a gentle teacher pointing out what went well and what to work on next.
+A Quran recitation assistant — pick a chapter, read verses in Arabic with translation, then record yourself and get AI feedback on your recitation.
 
 # Table of Content
 
@@ -35,12 +31,10 @@ The Quran Learning Platform is a assistant for anyone learning to recite the Qur
 | [TypeScript](https://www.typescriptlang.org/)                      | Type safety                                         |
 | [Tailwind CSS 4](https://tailwindcss.com/)                         | Styling                                             |
 | [shadcn/ui](https://ui.shadcn.com/)                                | UI components                                       |
-| [Base UI](https://base-ui.com/)                                    | Component primitives                                |
 | [Motion](https://motion.dev/)                                      | Animations                                          |
 | [Zustand](https://zustand.docs.pmnd.rs/)                           | Client state management                             |
 | [Quran Foundation API](https://quran.foundation/) (`@quranjs/api`) | Chapters, verses & translations                     |
 | [OpenAI](https://openai.com/) (Vercel AI SDK)                      | Transcription & recitation feedback                 |
-| [voice-glow](https://www.npmjs.com/package/voice-glow)             | Mic recording & audio visualizer                    |
 
 ## Getting Started
 
