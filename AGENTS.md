@@ -1,3 +1,11 @@
+# Context
+
+This is a Quran learning platform. Think of it as a friendly study buddy for anyone learning to recite the Quran. You open the app and see a list of all the chapters (surahs) — pick one, and you get to read its verses in beautiful Arabic script, along with an English translation so you can follow along.
+
+The fun part: while you're on a chapter, you can actually record yourself reciting a verse out loud. The app listens to your recitation, figures out what you said, and then gives you feedback on how you did — like a gentle teacher telling you what went well and what to work on next. It supports dark mode too, because late-night study sessions are a thing.
+
+In short: browse chapters → read verses → recite them → get feedback → repeat. That's the whole loop we're building here.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 ## This is NOT the Next.js you know
