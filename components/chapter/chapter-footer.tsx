@@ -20,8 +20,6 @@ import { useChapterStore, type RecitedWord } from "@/stores/chapter-store";
 import { safeJsonParse } from "@/lib/utils";
 import type { WordEvalSchema } from "@/lib/schema";
 
-import { useLocalStorage } from "@uidotdev/usehooks";
-
 import { motion } from "motion/react";
 import { useUIHints } from "@/hooks/use-ui-hints";
 
@@ -401,7 +399,7 @@ export function ChapterFooter() {
               ? "Something went wrong — try again"
               : micState === "denied"
                 ? "Microphone blocked — allow it to continue"
-                : "Hold to recite";
+                : " "; // Hold to recite
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key !== " " && event.key !== "Enter") return;
