@@ -1,6 +1,10 @@
 import { qfClient } from "@/lib/qf-client";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { ChapterCard } from "@/components/chapter/chapter-card";
+import { Button } from "@/components/ui/button";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { GithubIcon } from "@hugeicons/core-free-icons";
+import Link from "next/link";
 
 export default async function Page() {
   "use cache";
@@ -11,12 +15,27 @@ export default async function Page() {
       <div className="mx-auto min-h-screen w-full max-w-2xl border-x">
         <header className="sticky top-0 z-20 border-b bg-background/90 px-4 py-3 backdrop-blur sm:px-6">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex items-center gap-2.5">
               <h1 className="bg-(image:--gradient-emerald) bg-clip-text text-lg font-bold text-transparent">
                 Quran Learning Platform
               </h1>
             </div>
-            <ThemeSwitcher />
+
+            <div className="flex items-center gap-1">
+              <Link
+                href="https://github.com/Zain-ul-din/quran-learning-platform"
+                target="_blank"
+              >
+                <Button
+                  size={"icon"}
+                  variant={"ghost"}
+                  className={"text-foreground/80"}
+                >
+                  <HugeiconsIcon icon={GithubIcon} className="size-4" />
+                </Button>
+              </Link>
+              <ThemeSwitcher />
+            </div>
           </div>
         </header>
 

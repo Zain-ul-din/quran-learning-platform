@@ -33,6 +33,7 @@ export function ThemeSwitcher() {
     <Button
       variant="ghost"
       size="icon"
+      className={"text-foreground/80"}
       aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
       title={isDark ? "Switch to light theme" : "Switch to dark theme"}
       onClick={toggleTheme}

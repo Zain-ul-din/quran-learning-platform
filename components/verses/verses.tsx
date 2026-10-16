@@ -1,10 +1,8 @@
 "use client";
 import { Verse } from "@quranjs/api";
-import { use, useEffect, useRef, useState, useTransition } from "react";
-import { OpenAISessionContext } from "../providers/openai-session-provider";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "../ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Mic01Icon } from "@hugeicons/core-free-icons";
 import AudioWave02Icon from "@hugeicons/core-free-icons/AudioWave02Icon";
 import { motion } from "motion/react";
 import { cn } from "cn";
@@ -13,14 +11,7 @@ import { normalizeQuranEnTranslation } from "@/lib/utils";
 import { useChapterStore } from "@/stores/chapter-store";
 
 export function Verses({ verses }: { verses: Verse[] }) {
-  const { clientSecret } = use(OpenAISessionContext);
-
-  const [isPending, startTransition] = useTransition();
-  const [transcripts, setTranscripts] = useState<Record<string, string>>({});
   const [pc, setPc] = useState<RTCPeerConnection | null>(null);
-
-  const finalRef = useRef("");
-  const draftRef = useRef("");
 
   const { processing, selectedVerse, setSelectedVerse, recitedVerses } =
     useChapterStore();
@@ -56,79 +47,6 @@ export function Verses({ verses }: { verses: Verse[] }) {
       behavior: "smooth",
     });
   }, [selectedVerse?.id]);
-
-  const handleOnPracticeAyah = (verseId: number) => {
-    finalRef.current = "";
-    draftRef.current = "";
-    setTranscripts((prev) => ({ ...prev, [verseId]: "" }));
-
-    startTransition(async () => {
-      const sourceStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
-
-      const pc = new RTCPeerConnection();
-      setPc(pc);
-      pc.addTrack(sourceStream.getAudioTracks()[0], sourceStream);
-
-      const events = pc.createDataChannel("oai-events");
-      events.onmessage = ({ data }) => {
-        const event = JSON.parse(data);
-        console.log(event);
-
-        if (event.type === "session.created") {
-          // session created
-        }
-
-        if (
-          event.type === "conversation.item.input_audio_transcription.delta"
-        ) {
-          draftRef.current += event.delta;
-          setTranscripts((prev) => ({
-            ...prev,
-            [verseId]: finalRef.current + draftRef.current,
-          }));
-        }
-
-        if (
-          event.type === "conversation.item.input_audio_transcription.completed"
-        ) {
-          finalRef.current = finalRef.current
-            ? `${finalRef.current} ${event.transcript}`
-            : event.transcript;
-          draftRef.current = "";
-          setTranscripts((prev) => ({
-            ...prev,
-            [verseId]: finalRef.current,
-          }));
-        }
-      };
-
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      const sdpResponse = await fetch(
-        "https://api.openai.com/v1/realtime/calls",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${clientSecret}`,
-            "Content-Type": "application/sdp",
-          },
-          body: offer.sdp,
-        },
-      );
-
-      if (!sdpResponse.ok) {
-        throw new Error(await sdpResponse.text());
-      }
-
-      await pc.setRemoteDescription({
-        type: "answer",
-        sdp: await sdpResponse.text(),
-      });
-    });
-  };
 
   return (
     <ul
@@ -199,29 +117,6 @@ export function Verses({ verses }: { verses: Verse[] }) {
                 {normalizeQuranEnTranslation(verse?.translations[0].text)}
               </div>
             )}
-
-            {/* actions */}
-            <div className="mt-4 hidden">
-              <Button
-                onClick={() => handleOnPracticeAyah(verse.id)}
-                variant={"ghost"}
-                size={"sm"}
-                disabled={isPending || Boolean(pc)}
-                className={cn(pc && "hidden")}
-              >
-                <HugeiconsIcon icon={Mic01Icon} />{" "}
-                <span className="sr-only">Practice Ayah {verse.id}</span>
-              </Button>
-              {transcripts[verse.id] && (
-                <p
-                  lang="ar"
-                  dir="rtl"
-                  className="mt-4 font-arabic text-lg leading-relaxed text-muted-foreground"
-                >
-                  {transcripts[verse.id]}
-                </p>
-              )}
-            </div>
           </li>
         );
       })}

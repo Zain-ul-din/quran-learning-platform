@@ -4,7 +4,6 @@ import LocalFont from "next/font/local";
 
 import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { OpenAISessionProvider } from "@/components/providers/openai-session-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 
 const geistSans = Geist({
@@ -58,6 +57,10 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -69,9 +72,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
-          <TooltipProvider>
-            <OpenAISessionProvider>{children}</OpenAISessionProvider>
-          </TooltipProvider>
+          <TooltipProvider>{children}</TooltipProvider>
         </ThemeProvider>
       </body>
     </html>
