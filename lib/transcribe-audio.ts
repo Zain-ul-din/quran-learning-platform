@@ -11,6 +11,7 @@ export async function transcribeAudio({
   language: "ar";
   file: File;
 }) {
+  // NOTE:
   // The transcriptions endpoint takes multipart/form-data; JSON.stringify
   // would drop the File (it serializes to {}) and OpenAI answers 400.
   const form = new FormData();
@@ -31,8 +32,6 @@ export async function transcribeAudio({
     console.error("Transcription failed:", data);
     return null;
   }
-
-  console.log(JSON.stringify(data));
 
   return data;
 }
