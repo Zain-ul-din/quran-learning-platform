@@ -474,7 +474,7 @@ export function ChapterFooter() {
                    before:border-[6px] before:border-solid 
                    before:border-t-foreground/80 before:border-r-transparent before:border-b-transparent before:border-l-transparent"
             >
-              Practice one Ayah at a time
+              Finish the Ayah to see your results.
             </motion.div>
           )}
           <span className="grid place-items-center">
