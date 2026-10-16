@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "eval": "vite-node ./evals/run.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.94",
@@ -23,6 +24,7 @@
     "cn": "^0.4.0",
     "cuelume": "^0.2.8",
     "date-fns": "^4.4.0",
+    "dotenv": "^18.0.8",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.5.0",
     "lodash": "^4.18.1",
@@ -53,7 +55,8 @@
     "eslint-config-next": "16.4.0",
     "tailwind-scrollbar": "^4.0.2",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-node": "^6.0.0"
   },
   "packageManager": "pnpm@10.20.0"
 }

@@ -8,8 +8,7 @@ import { encode } from "@toon-format/toon";
 
 import { pick } from "lodash";
 import { recitedVerseOutputSchema } from "@/lib/schema";
-
-const TRANSCRIPTION_URL = "https://api.openai.com/v1/audio/transcriptions";
+import { transcribeAudio } from "@/lib/transcribe-audio";
 
 // TODO: Manage Edge cases
 
@@ -22,30 +21,17 @@ export async function POST(req: NextRequest) {
     verse: Verse;
   };
 
-  if (!audioFile) {
-    console.log("No audio file provided");
-    return NextResponse.json({}, { status: 400 });
-  }
+  if (!audioFile) return NextResponse.json({}, { status: 400 });
 
   try {
-    const openaiForm = new FormData();
-    openaiForm.append("file", audioFile);
-    openaiForm.append("model", "gpt-transcribe");
-    openaiForm.append("response_format", "json");
-    openaiForm.append("language", "ar");
-
-    const response = await fetch(TRANSCRIPTION_URL, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-      body: openaiForm,
+    const transcribeRes = await transcribeAudio({
+      file: audioFile,
+      model: "gpt-transcribe",
+      language: "ar",
+      response_format: "json",
     });
 
-    const data = (await response.json()) as { text?: string };
-
-    if (!response.ok) {
-      console.error("Transcription failed:", data);
-      return NextResponse.json({}, { status: 500 });
-    }
+    if (!transcribeRes) return NextResponse.json({}, { status: 500 });
 
     const verseContext = encode(
       pick(
@@ -56,7 +42,7 @@ export async function POST(req: NextRequest) {
       ),
     );
 
-    const prompt = `Check the correctness of following recitation transcript word by word:\n\n${data.text}\n\nCONTEXT:\n\nChapter:\n${encode(context.chapter)}\n\nVerse:${verseContext}`;
+    const prompt = `Check the correctness of following recitation transcript word by word:\n\n${transcribeRes.text}\n\nCONTEXT:\n\nChapter:\n${encode(context.chapter)}\n\nVerse:${verseContext}`;
 
     const schema = z
       .object(
