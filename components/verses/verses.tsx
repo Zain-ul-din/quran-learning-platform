@@ -133,11 +133,10 @@ export function Verses({ verses }: { verses: Verse[] }) {
   return (
     <ul
       ref={containerRef}
-      className="space-y-6 divide-y pb-[50dvh] snap-y snap-mandatory scrollbar-none  overflow-y-auto divide-border relative"
+      className="relative flex-1 snap-y snap-mandatory divide-y divide-border overflow-y-auto pb-[50dvh] scrollbar-none"
     >
       {verses.map((verse) => {
         const wholeVerse = verse.textIndopakNastaleeq!;
-
         const ayahMarker = wholeVerse.split(" ").at(-1);
         const words = verse.words?.filter(
           (word) => word.charTypeName !== "end",
@@ -148,8 +147,9 @@ export function Verses({ verses }: { verses: Verse[] }) {
         return (
           <li
             className={cn(
-              "p-4 py-6 w-full snap-start",
+              "w-full snap-start px-5 py-9 transition-colors sm:px-8 sm:py-11",
               !isActive && "opacity-40 hover:opacity-50",
+              isActive && "bg-secondary/45",
               isActive && processing && "shimmer bg-muted/50",
             )}
             // shadow-[inset_0px_0px_4px_1px] shadow-green-300
@@ -162,7 +162,7 @@ export function Verses({ verses }: { verses: Verse[] }) {
             <div
               lang="ar"
               dir="rtl"
-              className="tracking-normal text-3xl  font-arabic text-balance leading-[2.5]"
+              className="text-right font-arabic font-normal tracking-normal text-3xl text-foreground text-balance leading-[2.35]"
             >
               {words?.map((word) => {
                 const recitedWord = recitedWords.find(
@@ -172,10 +172,10 @@ export function Verses({ verses }: { verses: Verse[] }) {
                 return (
                   <span
                     className={cn(
-                      "font-light hover:font-medium hover:text-primary transition-all duration-100 cursor-pointer",
+                      "cursor-pointer font-normal transition-colors duration-100 hover:text-primary",
                       recitedWord &&
                         (recitedWord.status === "correct"
-                          ? "text-green-600"
+                          ? "text-green-500"
                           : "text-red-500"),
                     )}
                     key={word.id}
@@ -195,7 +195,7 @@ export function Verses({ verses }: { verses: Verse[] }) {
               </span>
             </div>
             {Array.isArray(verse.translations) && (
-              <div className="text-foreground/80 mt-6">
+              <div className="mt-7 max-w-prose text-sm leading-7 text-foreground/75 sm:text-base">
                 {normalizeQuranEnTranslation(verse?.translations[0].text)}
               </div>
             )}

@@ -7,7 +7,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import { useMicrophone, VoiceBeam } from "voice-glow";
+import { useMicrophone } from "voice-glow";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Mic01Icon } from "@hugeicons/core-free-icons";
 import { play, press, release } from "cuelume";
@@ -24,45 +24,32 @@ type Phase = "idle" | "requesting" | "recording" | "processing" | "error";
 
 type Tone = {
   face: string;
-  ring: string;
-  shadow: string;
-  glow: string;
+  elevation: string;
 };
 
 /**
- * Button colours, one entry per phase — restyle the control by editing these
- * strings (gradients, glyph colour, ring, shadow and glow) only.
+ * Semantic button colours, one entry per phase.
  */
 const TONES: Record<Phase, Tone> = {
   idle: {
-    face: "bg-gradient-to-b from-card via-card to-muted text-primary",
-    ring: "border border-border",
-    shadow: "shadow-[0_20px_40px_-24px_rgba(16,32,26,0.25)]",
-    glow: "bg-primary/10",
+    face: "border-primary bg-primary text-primary-foreground",
+    elevation: "shadow-[var(--button-primary-elevation)]",
   },
   requesting: {
-    face: "bg-gradient-to-b from-card via-card to-muted text-primary",
-    ring: "border border-border/80",
-    shadow: "shadow-[0_20px_40px_-24px_rgba(16,32,26,0.65)]",
-    glow: "bg-primary/25",
+    face: "border-primary bg-primary text-primary-foreground",
+    elevation: "shadow-[var(--button-primary-elevation)]",
   },
   recording: {
-    face: "bg-gradient-to-b from-rose-500 via-red-500 to-red-600 text-white",
-    ring: "border border-red-400/50",
-    shadow: "shadow-[0_22px_44px_-16px_rgba(225,29,72,0.8)]",
-    glow: "bg-red-500/35",
+    face: "border-destructive bg-destructive text-primary-foreground",
+    elevation: "shadow-[var(--button-destructive-elevation)]",
   },
   processing: {
-    face: "bg-gradient-to-b from-primary via-emerald-600 to-emerald-700 text-primary-foreground",
-    ring: "border border-emerald-400/50",
-    shadow: "shadow-[0_22px_44px_-18px_rgba(16,185,129,0.65)]",
-    glow: "bg-primary/30",
+    face: "border-border bg-secondary text-secondary-foreground",
+    elevation: "shadow-[var(--button-secondary-elevation)]",
   },
   error: {
-    face: "bg-gradient-to-b from-card via-card to-muted text-destructive",
-    ring: "border border-destructive/50",
-    shadow: "shadow-[0_20px_40px_-24px_rgba(16,32,26,0.65)]",
-    glow: "bg-destructive/25",
+    face: "border-destructive bg-destructive text-primary-foreground",
+    elevation: "shadow-[var(--button-destructive-elevation)]",
   },
 };
 
@@ -426,22 +413,7 @@ export function ChapterFooter() {
           className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-background via-background/30 to-transparent"
         />
 
-        {/*
-          The beam must NOT carry `-z-10`: it is `position: relative`, so a
-          negative z-index drops it below this wrapper div — the div then wins
-          the hit test over the button and every press is swallowed.
-        */}
-        <VoiceBeam
-          className="flex justify-center p-5 isolate pointer-events-auto"
-          stream={stream}
-          type="pill"
-          theme="auto"
-          colorVariant={isRecording ? "sunset" : "forest"}
-          active={Boolean(stream)}
-          borderRadius={9999}
-          scale={0.9}
-        >
-          <button
+        <button
             type="button"
             disabled={!ready}
             aria-label={
@@ -450,15 +422,14 @@ export function ChapterFooter() {
                 : "Hold to record your recitation"
             }
             className={cn(
-              "group relative isolate grid size-[76px] place-items-center rounded-full",
+              "group pointer-events-auto relative inline-flex h-12 min-w-52 items-center justify-center gap-2 rounded-md border px-5 font-semibold",
               "touch-none select-none",
-              "transition-[transform,box-shadow,color] duration-200 ease-out",
-              "outline-none focus-visible:ring-4 focus-visible:ring-ring/50 focus-visible:ring-offset-4 focus-visible:ring-offset-background",
+              "transition-[transform,box-shadow,background-color] duration-200 ease-out",
+              "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
               "disabled:cursor-not-allowed disabled:opacity-60",
-              isRecording ? "scale-105" : "active:scale-95",
+              "active:translate-y-[var(--button-elevation-offset)] active:shadow-none",
               tone.face,
-              tone.ring,
-              tone.shadow,
+              tone.elevation,
             )}
             onPointerDown={(event) => {
               if (event.button !== 0 || !event.isPrimary) return;
@@ -472,47 +443,25 @@ export function ChapterFooter() {
             onKeyUp={handleKeyUp}
             onBlur={endHoldIfRecording}
           >
-            {/* Specular sheen — the physical-key highlight. */}
-            <span
-              aria-hidden
-              className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/45 via-white/5 to-black/10 dark:from-white/20 dark:via-white/5 dark:to-black/30"
-            />
-            {/* Halo blooming out of the face while recording. */}
-            {isRecording && (
-              <>
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute -inset-2 rounded-full border border-red-400/70 animate-ping [animation-duration:2.4s]"
-                />
-                <span
-                  aria-hidden
-                  className={cn(
-                    "pointer-events-none absolute -inset-4 rounded-full blur-lg animate-pulse",
-                    tone.glow,
-                  )}
-                />
-              </>
-            )}
-
-            <span className="relative z-10 grid place-items-center">
+            <span className="grid place-items-center">
               {phase === "processing" ? (
-                <Spinner className="size-7" />
+                <Spinner className="size-5" />
               ) : isRecording ? (
                 <RecordVisualizer
                   stream={stream}
                   active={isRecording}
-                  bars={7}
+                  bars={5}
                 />
               ) : (
                 <HugeiconsIcon
                   icon={Mic01Icon}
                   strokeWidth={1.75}
-                  className="size-8"
+                  className="size-5"
                 />
               )}
             </span>
+            <span>{isRecording ? "Release to stop" : "Hold to recite"}</span>
           </button>
-        </VoiceBeam>
 
         <div className="flex h-6 items-center gap-2 text-xs" aria-live="polite">
           {isRecording && (

@@ -91,6 +91,16 @@
     oklch(50.81% 0.1049 165.61) 100%
   ); /* #065F46 → #047857 */
   --glow-emerald: oklch(69.59% 0.1491 162.48 / 0.25); /* #10B981 @ 25% */
+  --button-elevation-offset: 0.375rem;
+  --primary-pressed: oklch(42% 0.09 165.61);
+  --secondary-pressed: oklch(89% 0.012 164.87);
+  --destructive-pressed: oklch(48% 0.18 27.33);
+  --button-primary-elevation: 0 var(--button-elevation-offset) 0
+    var(--primary-pressed);
+  --button-secondary-elevation: 0 var(--button-elevation-offset) 0
+    var(--secondary-pressed);
+  --button-destructive-elevation: 0 var(--button-elevation-offset) 0
+    var(--destructive-pressed);
 }
 
 /* Noor — Green-Black & Emerald Jade (dark) */
@@ -133,6 +143,16 @@
     oklch(77.29% 0.1535 163.22) 100%
   ); /* #059669 → #34D399 */
   --glow-emerald: oklch(77.29% 0.1535 163.22 / 0.22); /* #34D399 @ 22% */
+  --button-elevation-offset: 0.375rem;
+  --primary-pressed: oklch(61% 0.12 163.23);
+  --secondary-pressed: oklch(18% 0.014 168.63);
+  --destructive-pressed: oklch(55% 0.14 22.22);
+  --button-primary-elevation: 0 var(--button-elevation-offset) 0
+    var(--primary-pressed);
+  --button-secondary-elevation: 0 var(--button-elevation-offset) 0
+    var(--secondary-pressed);
+  --button-destructive-elevation: 0 var(--button-elevation-offset) 0
+    var(--destructive-pressed);
 }
 
 @layer base {
@@ -144,5 +164,28 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer components {
+  .button-elevated {
+    box-shadow: var(--button-elevation);
+  }
+
+  .button-elevated:active {
+    box-shadow: none;
+    transform: translateY(var(--button-elevation-offset));
+  }
+
+  .button-elevation-primary {
+    --button-elevation: var(--button-primary-elevation);
+  }
+
+  .button-elevation-secondary {
+    --button-elevation: var(--button-secondary-elevation);
+  }
+
+  .button-elevation-destructive {
+    --button-elevation: var(--button-destructive-elevation);
   }
 }
