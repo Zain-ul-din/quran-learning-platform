@@ -6,6 +6,17 @@
 
 A Quran recitation assistant — pick a chapter, read verses in Arabic with translation, then record yourself and get AI feedback on your recitation.
 
+<table>
+  <tr>
+    <td>
+      <img width="673" height="960" alt="image" src="https://github.com/user-attachments/assets/d97a13e3-6798-486a-a417-06c1e1551ba9" />
+    </td>
+    <td>
+      <img width="673" height="960" alt="image" src="https://github.com/user-attachments/assets/d28f06f2-d26c-47d8-bbab-49f5c264fbf8" />
+    </td>
+  </tr>
+</table>
+
 # Table of Content
 
 - [How It Works](#how-it-works)
