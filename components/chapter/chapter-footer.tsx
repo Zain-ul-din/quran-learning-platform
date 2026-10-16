@@ -33,23 +33,23 @@ type Tone = {
 const TONES: Record<Phase, Tone> = {
   idle: {
     face: "border-primary bg-primary text-primary-foreground",
-    elevation: "shadow-[var(--button-primary-elevation)]",
+    elevation: "button-elevation-primary",
   },
   requesting: {
     face: "border-primary bg-primary text-primary-foreground",
-    elevation: "shadow-[var(--button-primary-elevation)]",
+    elevation: "button-elevation-primary",
   },
   recording: {
     face: "border-destructive bg-destructive text-primary-foreground",
-    elevation: "shadow-[var(--button-destructive-elevation)]",
+    elevation: "button-elevation-destructive",
   },
   processing: {
     face: "border-border bg-secondary text-secondary-foreground",
-    elevation: "shadow-[var(--button-secondary-elevation)]",
+    elevation: "button-elevation-secondary",
   },
   error: {
     face: "border-destructive bg-destructive text-primary-foreground",
-    elevation: "shadow-[var(--button-destructive-elevation)]",
+    elevation: "button-elevation-destructive",
   },
 };
 
@@ -406,7 +406,7 @@ export function ChapterFooter() {
 
   return (
     <footer className="fixed inset-x-0 bottom-0 z-50 pointer-events-none flex justify-center">
-      <div className="relative flex w-full max-w-2xl  flex-col items-center gap-2 px-4 pt-14 pb-6">
+      <div className="relative flex w-full max-w-2xl  flex-col items-center  px-4 pb-4">
         {/* Scrolling verses fade out behind the control. */}
         <div
           aria-hidden
@@ -414,56 +414,54 @@ export function ChapterFooter() {
         />
 
         <button
-            type="button"
-            disabled={!ready}
-            aria-label={
-              isRecording
-                ? "Release to stop recording"
-                : "Hold to record your recitation"
-            }
-            className={cn(
-              "group pointer-events-auto relative inline-flex h-12 min-w-52 items-center justify-center gap-2 rounded-md border px-5 font-semibold",
-              "touch-none select-none",
-              "transition-[transform,box-shadow,background-color] duration-200 ease-out",
-              "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-              "disabled:cursor-not-allowed disabled:opacity-60",
-              "active:translate-y-[var(--button-elevation-offset)] active:shadow-none",
-              tone.face,
-              tone.elevation,
+          type="button"
+          disabled={!ready}
+          aria-label={
+            isRecording
+              ? "Release to stop recording"
+              : "Hold to record your recitation"
+          }
+          className={cn(
+            "button-elevated group pointer-events-auto relative inline-flex h-12 min-w-52 items-center justify-center gap-2 rounded-md border px-5 font-semibold",
+            "touch-none select-none",
+            "transition-[transform,box-shadow,background-color] duration-200 ease-out",
+            "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+            "disabled:cursor-not-allowed disabled:opacity-60",
+            tone.face,
+            tone.elevation,
+          )}
+          onPointerDown={(event) => {
+            if (event.button !== 0 || !event.isPrimary) return;
+            void beginHold();
+          }}
+          onPointerUp={endHold}
+          onPointerLeave={endHold}
+          onPointerCancel={endHold}
+          onContextMenu={(event) => event.preventDefault()}
+          onKeyDown={handleKeyDown}
+          onKeyUp={handleKeyUp}
+          onBlur={endHoldIfRecording}
+        >
+          <span className="grid place-items-center">
+            {phase === "processing" ? (
+              <Spinner className="size-5" />
+            ) : isRecording ? (
+              <RecordVisualizer stream={stream} active={isRecording} bars={5} />
+            ) : (
+              <HugeiconsIcon
+                icon={Mic01Icon}
+                strokeWidth={1.75}
+                className="size-5"
+              />
             )}
-            onPointerDown={(event) => {
-              if (event.button !== 0 || !event.isPrimary) return;
-              void beginHold();
-            }}
-            onPointerUp={endHold}
-            onPointerLeave={endHold}
-            onPointerCancel={endHold}
-            onContextMenu={(event) => event.preventDefault()}
-            onKeyDown={handleKeyDown}
-            onKeyUp={handleKeyUp}
-            onBlur={endHoldIfRecording}
-          >
-            <span className="grid place-items-center">
-              {phase === "processing" ? (
-                <Spinner className="size-5" />
-              ) : isRecording ? (
-                <RecordVisualizer
-                  stream={stream}
-                  active={isRecording}
-                  bars={5}
-                />
-              ) : (
-                <HugeiconsIcon
-                  icon={Mic01Icon}
-                  strokeWidth={1.75}
-                  className="size-5"
-                />
-              )}
-            </span>
-            <span>{isRecording ? "Release to stop" : "Hold to recite"}</span>
-          </button>
+          </span>
+          <span>{isRecording ? "Release to stop" : "Hold to recite"}</span>
+        </button>
 
-        <div className="flex h-6 items-center gap-2 text-xs" aria-live="polite">
+        <div
+          className="flex items-center gap-2 text-xs mt-4"
+          aria-live="polite"
+        >
           {isRecording && (
             <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 font-medium tabular-nums text-red-600 dark:text-red-400">
               <span className="size-1.5 animate-pulse rounded-full bg-red-500" />
