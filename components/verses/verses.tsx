@@ -95,7 +95,7 @@ export function Verses({ verses }: { verses: Verse[] }) {
                       recitedWord &&
                         (recitedWord.status === "correct"
                           ? "text-green-600 dark:text-green-500"
-                          : "text-red-500"),
+                          : "text-red-500 dark:text-red-400"),
                     )}
                     key={word.id}
                   >
