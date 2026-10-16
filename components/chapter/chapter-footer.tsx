@@ -10,7 +10,7 @@ import {
 import { useMicrophone, VoiceBeam } from "voice-glow";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Mic01Icon } from "@hugeicons/core-free-icons";
-import { press, release } from "cuelume";
+import { play, press, release } from "cuelume";
 import { cn } from "cn";
 import { useShallow } from "zustand/react/shallow";
 
@@ -110,6 +110,7 @@ export function ChapterFooter() {
   );
   const setRecitedVerses = useChapterStore((state) => state.setRecitedVerses);
   const selectNextVerse = useChapterStore((state) => state.selectNextVerse);
+  const setProcessing = useChapterStore((state) => state.setProcessing);
 
   const [phase, setPhaseState] = useState<Phase>("idle");
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -234,15 +235,21 @@ export function ChapterFooter() {
           return;
         }
 
+        setProcessing(true);
         setPhase("processing");
         sendAudio(blob)
           .then((allCorrect) => {
+            setProcessing(false);
             setPhase("idle");
+            play(allCorrect ? "success" : "error", {
+              theme: "bubble",
+            });
             // A perfect recitation moves the learner on to the next ayah.
             if (allCorrect) selectNextVerse();
           })
           .catch((err) => {
             console.error(err);
+            setProcessing(false);
             setPhase("error");
           });
       };
@@ -257,7 +264,7 @@ export function ChapterFooter() {
       setElapsedMs(0);
       setPhase("recording");
     },
-    [sendAudio, selectNextVerse, setPhase, stopMic],
+    [sendAudio, selectNextVerse, setPhase, setProcessing, stopMic],
   );
 
   /** Press-and-hold begins: ask for the mic, then roll as soon as it lands. */
@@ -411,12 +418,12 @@ export function ChapterFooter() {
   };
 
   return (
-    <footer className="fixed inset-x-0 bottom-0 z-50 flex justify-center">
-      <div className="relative flex w-full max-w-2xl flex-col items-center gap-2 px-4 pt-14 pb-6">
+    <footer className="fixed inset-x-0 bottom-0 z-50 pointer-events-none flex justify-center">
+      <div className="relative flex w-full max-w-2xl  flex-col items-center gap-2 px-4 pt-14 pb-6">
         {/* Scrolling verses fade out behind the control. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-background via-background/50 to-transparent"
+          className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-background via-background/30 to-transparent"
         />
 
         {/*
@@ -425,7 +432,7 @@ export function ChapterFooter() {
           the hit test over the button and every press is swallowed.
         */}
         <VoiceBeam
-          className="flex justify-center p-5"
+          className="flex justify-center p-5 isolate pointer-events-auto"
           stream={stream}
           type="pill"
           theme="auto"

@@ -10,9 +10,11 @@ interface ChapterState {
   /** Every ayah of the current chapter, pushed in by `Verses`. */
   verses: Verse[];
   selectedVerse: Verse | null;
+  processing: boolean;
   setChapter: (chapter: Chapter) => void;
   setVerses: (verses: Verse[]) => void;
   setSelectedVerse: (verse: Verse | null) => void;
+  setProcessing: (processing: boolean) => void;
   /** Selects the ayah after the current one, when the chapter has one. */
   selectNextVerse: () => void;
   recitedVerses: {
@@ -25,6 +27,7 @@ export const useChapterStore = create<ChapterState>((set, get) => ({
   chapter: null,
   verses: [],
   selectedVerse: null,
+  processing: false,
   recitedVerses: {},
   setRecitedVerses: (verseId, words) =>
     set((state) => ({
@@ -40,10 +43,14 @@ export const useChapterStore = create<ChapterState>((set, get) => ({
       recitedVerses: {},
     }),
   setVerses: (verses) => set({ verses }),
-  setSelectedVerse: (verse) => set({ selectedVerse: verse }),
+  setSelectedVerse: (verse) => {
+    if (get().processing) return;
+    set({ selectedVerse: verse });
+  },
+  setProcessing: (processing) => set({ processing }),
   selectNextVerse: () => {
     const { selectedVerse, verses } = get();
-    if (!selectedVerse) return;
+    if (get().processing || !selectedVerse) return;
     const next = verses.find(
       (candidate) => candidate.verseNumber === selectedVerse.verseNumber + 1,
     );

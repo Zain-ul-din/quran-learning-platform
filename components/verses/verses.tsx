@@ -22,7 +22,8 @@ export function Verses({ verses }: { verses: Verse[] }) {
   const finalRef = useRef("");
   const draftRef = useRef("");
 
-  const { selectedVerse, setSelectedVerse, recitedVerses } = useChapterStore();
+  const { processing, selectedVerse, setSelectedVerse, recitedVerses } =
+    useChapterStore();
   const setVerses = useChapterStore((state) => state.setVerses);
 
   const containerRef = useRef<HTMLUListElement>(null);
@@ -149,6 +150,7 @@ export function Verses({ verses }: { verses: Verse[] }) {
             className={cn(
               "p-4 py-6 w-full snap-start",
               !isActive && "opacity-40 hover:opacity-50",
+              isActive && processing && "shimmer bg-muted/50",
             )}
             // shadow-[inset_0px_0px_4px_1px] shadow-green-300
             key={verse.id}

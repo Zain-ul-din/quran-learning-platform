@@ -1,5 +1,7 @@
+"use client";
 import { Chapter } from "@quranjs/api";
 import { cn } from "cn";
+import { play } from "cuelume";
 import Link from "next/link";
 
 export function ChapterCard({ chapter }: { chapter: Chapter }) {
@@ -11,6 +13,7 @@ export function ChapterCard({ chapter }: { chapter: Chapter }) {
           "transition-colors duration-200",
           "hover:border-primary/40 hover:bg-secondary",
         )}
+        onClick={() => play("press", { theme: "bubble" })}
         href={`/chapter/${chapter.id}`}
       >
         {/* Circular emerald-ringed number badge */}
