@@ -4,6 +4,24 @@
 
 A Quran recitation assistant — pick a chapter, read verses in Arabic with translation, then record yourself and get AI feedback on your recitation.
 
+**Development Status:**
+
+<table>
+  
+<tr>
+  <td>
+    <img width="120" height="120" alt="mech-working" src="https://github.com/user-attachments/assets/125e5e83-7736-4237-b5a6-fb4dc70ad494" />
+  </td>
+  <td>
+  <i>Evaluating...</i>
+    <br />  <br />
+    For the current multi-layer system, it is supposed to run evals against an audio and text classification model. Evaluation data includes audio from different dialects and transcribed text from the QF API.
+  </td>
+</tr>
+</table>
+
+## Screenshots
+
 <table>
   <tr>
     <td>
@@ -14,6 +32,8 @@ A Quran recitation assistant — pick a chapter, read verses in Arabic with tran
     </td>
   </tr>
 </table>
+
+
 
 # Table of Content
 
