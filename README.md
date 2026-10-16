@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
+
+## 📖 Quran Learning Platform
+
+</div>
+
+```diff
+- Disclaimer: This project is under active development. Features and documentation may change; contributions to improve the docs are welcome.
+```
+
+The Quran Learning Platform is a assistant for anyone learning to recite the Quran. Browse through the chapters, read the verses in Arabic with an English translation alongside, then record yourself reciting a verse — the app transcribes your recitation and uses AI to give you feedback on how you did, like a gentle teacher pointing out what went well and what to work on next.
+
+# Table of Content
+
+- [How It Works](#how-it-works)
+- [Technologies](#technologies)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [About](#about-us)
+
+## How It Works
+
+1. **Content fetch** — chapters and verses are fetched from the [Quran Foundation API](https://quran.foundation/) with translations included.
+2. **Recording** — the app captures your recitation from the microphone.
+3. **Transcription** — the audio is sent to `/api/process-audio` and transcribed by OpenAI.
+4. **Evaluation** — the transcript is checked word by word against the verse.
+5. **Feedback** — a structured, per-word result is streamed back to the UI.
+
+## Technologies
+
+| Tech                                                               | Role                                                |
+| ------------------------------------------------------------------ | --------------------------------------------------- |
+| [Next.js 16](https://nextjs.org/)                                  | App framework (App Router, React Server Components) |
+| [React 19](https://react.dev/)                                     | UI library                                          |
+| [TypeScript](https://www.typescriptlang.org/)                      | Type safety                                         |
+| [Tailwind CSS 4](https://tailwindcss.com/)                         | Styling                                             |
+| [shadcn/ui](https://ui.shadcn.com/)                                | UI components                                       |
+| [Base UI](https://base-ui.com/)                                    | Component primitives                                |
+| [Motion](https://motion.dev/)                                      | Animations                                          |
+| [Zustand](https://zustand.docs.pmnd.rs/)                           | Client state management                             |
+| [Quran Foundation API](https://quran.foundation/) (`@quranjs/api`) | Chapters, verses & translations                     |
+| [OpenAI](https://openai.com/) (Vercel AI SDK)                      | Transcription & recitation feedback                 |
+| [voice-glow](https://www.npmjs.com/package/voice-glow)             | Mic recording & audio visualizer                    |
 
 ## Getting Started
 
-First, run the development server:
+### 1. Clone the repo
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/Zain-ul-din/quran-learning-platform.git
+cd quran-learning-platform
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Install dependencies
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm install
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. Set up environment variables
 
-## Learn More
+Copy `.env.example` to `.env` and fill in your keys (see [Environment Variables](#environment-variables)).
 
-To learn more about Next.js, take a look at the following resources:
+### 4. Run it
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Open [http://localhost:3000](http://localhost:3000) and start learning. ☕
 
-## Deploy on Vercel
+## Environment Variables
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Variable           | Where to get it                                               |
+| ------------------ | ------------------------------------------------------------- |
+| `QF_CLIENT_ID`     | [Quran Foundation](https://quran.foundation/) API credentials |
+| `QF_CLIENT_SECRET` | [Quran Foundation](https://quran.foundation/) API credentials |
+| `OPENAI_API_KEY`   | [OpenAI](https://platform.openai.com/api-keys)                |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## About Us
+
+<div align="center">
+<h4 font-weight="bold">This repository is maintained by <a href="https://github.com/Zain-ul-din">Zain-Ul-Din</a></h4>
+<p> Show some ❤️ by starring this awesome repository! </p>
+</div>
