@@ -20,6 +20,11 @@ import { useChapterStore, type RecitedWord } from "@/stores/chapter-store";
 import { safeJsonParse } from "@/lib/utils";
 import type { WordEvalSchema } from "@/lib/schema";
 
+import { useLocalStorage } from "@uidotdev/usehooks";
+
+import { motion } from "motion/react";
+import { useUIHints } from "@/hooks/use-ui-hints";
+
 type Phase = "idle" | "requesting" | "recording" | "processing" | "error";
 
 type RecitedScore = { words: WordEvalSchema[] };
@@ -110,6 +115,8 @@ export function ChapterFooter() {
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef(0);
 
+  const reciteTooltipHint = useUIHints("ui.hints.hold-to-recite");
+
   const setPhase = useCallback((next: Phase) => {
     phaseRef.current = next;
     setPhaseState(next);
@@ -176,13 +183,10 @@ export function ChapterFooter() {
       let text = "";
       for (;;) {
         const { done, value } = await reader.read();
-        console.log(text);
         if (value) text += decoder.decode(value, { stream: true });
         if (done) break;
       }
       text += decoder.decode();
-
-      console.log(text);
 
       const score: RecitedScore | null = safeJsonParse(text);
 
@@ -264,6 +268,7 @@ export function ChapterFooter() {
   /** Press-and-hold begins: ask for the mic, then roll as soon as it lands. */
   const beginHold = useCallback(async () => {
     if (!ready || holdingRef.current) return;
+    void reciteTooltipHint.dismiss();
     const current = phaseRef.current;
     if (
       current === "requesting" ||
@@ -420,7 +425,7 @@ export function ChapterFooter() {
           className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-background via-background/30 to-transparent"
         />
 
-        <button
+        <motion.button
           type="button"
           disabled={!ready}
           aria-label={
@@ -433,6 +438,7 @@ export function ChapterFooter() {
             "touch-none select-none",
             "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             "disabled:cursor-not-allowed disabled:opacity-60",
+            "relative",
             tone.face,
             tone.elevation,
           )}
@@ -448,6 +454,29 @@ export function ChapterFooter() {
           onKeyUp={handleKeyUp}
           onBlur={endHoldIfRecording}
         >
+          {reciteTooltipHint.visible && (
+            <motion.div
+              initial={{
+                scaleX: 0,
+                scaleY: 0.2,
+              }}
+              animate={{
+                scaleX: 1,
+                scaleY: 1,
+              }}
+              transition={{
+                delay: 1,
+              }}
+              className="absolute bottom-full left-1/2 -translate-x-1/2 -translate-y-5 
+                   bg-foreground/80 text-background p-2 whitespace-nowrap rounded-md 
+                   text-base font-medium shadow-sm
+                   before:content-[''] before:absolute before:top-full before:left-1/2 before:-translate-x-1/2 
+                   before:border-[6px] before:border-solid 
+                   before:border-t-foreground/80 before:border-r-transparent before:border-b-transparent before:border-l-transparent"
+            >
+              Practice one Ayah at a time
+            </motion.div>
+          )}
           <span className="grid place-items-center">
             {phase === "processing" ? (
               <Spinner className="size-5" />
@@ -462,7 +491,7 @@ export function ChapterFooter() {
             )}
           </span>
           <span>{isRecording ? "Release to stop" : "Hold to recite"}</span>
-        </button>
+        </motion.button>
 
         <div
           className="flex items-center gap-2 text-xs mt-4"
