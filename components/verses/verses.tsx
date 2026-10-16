@@ -51,7 +51,10 @@ export function Verses({ verses }: { verses: Verse[] }) {
   return (
     <ul
       ref={containerRef}
-      className="relative flex-1 snap-y snap-mandatory divide-y divide-border overflow-y-auto pb-[50dvh] scrollbar-none"
+      className={cn(
+        "relative flex-1  divide-y divide-border overflow-y-auto pb-[50dvh] scrollbar-none",
+        // "snap-y snap-mandatory"
+      )}
     >
       {verses.map((verse) => {
         const wholeVerse = verse.textIndopakNastaleeq!;
@@ -70,7 +73,6 @@ export function Verses({ verses }: { verses: Verse[] }) {
               isActive && "bg-secondary/45",
               isActive && processing && "shimmer bg-muted/50",
             )}
-            // shadow-[inset_0px_0px_4px_1px] shadow-green-300
             key={verse.id}
             onClick={() => {
               setSelectedVerse(verse);
