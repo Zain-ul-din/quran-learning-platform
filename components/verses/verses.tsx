@@ -21,7 +21,6 @@ export function Verses({ verses }: { verses: Verse[] }) {
 
   useEffect(() => {
     const firstVerse = verses[0];
-    console.log("setting first verse: ", firstVerse);
     setVerses(verses);
     setSelectedVerse(firstVerse);
   }, [verses, setSelectedVerse, setVerses]);
