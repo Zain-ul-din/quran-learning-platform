@@ -65,7 +65,7 @@ export function Verses({ verses }: { verses: Verse[] }) {
         return (
           <li
             className={cn(
-              "w-full snap-start px-5 py-9 transition-colors sm:px-8 sm:py-11",
+              "w-full snap-start px-5 py-9 transition-[color,opacity,background-color] duration-150 ease-[var(--ease-out)] sm:px-8 sm:py-11",
               !isActive && "opacity-40 hover:opacity-50",
               isActive && "bg-secondary/45",
               isActive && processing && "shimmer bg-muted/50",

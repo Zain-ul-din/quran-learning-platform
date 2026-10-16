@@ -4,6 +4,8 @@
 
 @plugin "tailwind-scrollbar";
 @custom-variant dark (&:is(.dark *));
+/* Real pointing devices only — touch fires a phantom hover on tap. */
+@custom-variant fine-hover (@media (hover: hover) and (pointer: fine));
 
 @theme inline {
   --color-background: var(--background);
@@ -91,6 +93,10 @@
     oklch(50.81% 0.1049 165.61) 100%
   ); /* #065F46 → #047857 */
   --glow-emerald: oklch(69.59% 0.1491 162.48 / 0.25); /* #10B981 @ 25% */
+  /* Motion — strong curves. Built-in CSS easings are too weak for UI. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   --button-elevation-offset: 0.375rem;
   --primary-pressed: oklch(42% 0.09 165.61);
   --secondary-pressed: oklch(89% 0.012 164.87);
@@ -170,6 +176,12 @@
 @layer components {
   .button-elevated {
     box-shadow: var(--button-elevation);
+    /* Press is tactile feedback — snappy. The phase colour change can breathe a touch longer. */
+    transition:
+      transform 120ms var(--ease-out),
+      box-shadow 120ms var(--ease-out),
+      background-color 200ms var(--ease-out),
+      border-color 200ms var(--ease-out);
   }
 
   .button-elevated:active {
@@ -187,5 +199,30 @@
 
   .button-elevation-destructive {
     --button-elevation: var(--button-destructive-elevation);
+  }
+}
+
+/* Chapter timeline — staggered entrance. Decorative: it must never block interaction. */
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card-enter {
+  opacity: 0;
+  animation: card-enter 300ms var(--ease-out) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }

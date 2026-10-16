@@ -424,7 +424,6 @@ export function ChapterFooter() {
           className={cn(
             "button-elevated group pointer-events-auto relative inline-flex h-12 min-w-52 items-center justify-center gap-2 rounded-md border px-5 font-semibold",
             "touch-none select-none",
-            "transition-[transform,box-shadow,background-color] duration-200 ease-out",
             "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
             "disabled:cursor-not-allowed disabled:opacity-60",
             tone.face,
