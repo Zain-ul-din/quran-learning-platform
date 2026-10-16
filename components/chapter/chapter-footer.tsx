@@ -18,9 +18,11 @@ import { RecordVisualizer } from "@/components/chapter/record-visualizer";
 import { Spinner } from "@/components/ui/spinner";
 import { useChapterStore, type RecitedWord } from "@/stores/chapter-store";
 import { safeJsonParse } from "@/lib/utils";
-import type { RecitedVerseOutputSchema } from "@/lib/schema";
+import type { WordEvalSchema } from "@/lib/schema";
 
 type Phase = "idle" | "requesting" | "recording" | "processing" | "error";
+
+type RecitedScore = { words: WordEvalSchema[] };
 
 type Tone = {
   face: string;
@@ -117,21 +119,18 @@ export function ChapterFooter() {
   const ready = Boolean(chapter && verse) && supported;
 
   const applyRecited = useCallback(
-    (payload: unknown) => {
-      if (!payload || typeof payload !== "object") return;
+    (payload: RecitedScore | null) => {
+      if (!payload || !Array.isArray(payload.words)) return;
 
       const { selectedVerse } = useChapterStore.getState();
       if (!selectedVerse?.words?.length) return;
 
-      const recitedWords = Object.entries(
-        payload as Record<string, RecitedVerseOutputSchema>,
-      )
-        .map(([key, output]) => {
-          if (!output || typeof output !== "object") return null;
-          const wordId = Number(key.split("_")[0]);
-          const word = selectedVerse.words!.find((w) => w.id === wordId);
+      const recitedWords = payload.words
+        .map((entry) => {
+          if (!entry || typeof entry !== "object") return null;
+          const word = selectedVerse.words!.find((w) => w.id === entry.wordId);
           if (!word) return null;
-          return { ...word, ...output } as RecitedWord;
+          return { ...word, ...entry } as RecitedWord;
         })
         .filter((word): word is RecitedWord => word !== null);
 
@@ -177,17 +176,25 @@ export function ChapterFooter() {
       let text = "";
       for (;;) {
         const { done, value } = await reader.read();
+        console.log(text);
         if (value) text += decoder.decode(value, { stream: true });
         if (done) break;
       }
       text += decoder.decode();
 
-      const score: Record<string, RecitedVerseOutputSchema> | null =
-        safeJsonParse(text);
-      if (!score) throw new Error("process-audio sent a malformed score");
+      console.log(text);
+
+      const score: RecitedScore | null = safeJsonParse(text);
+
+      if (!score || !Array.isArray(score.words)) {
+        throw new Error("process-audio sent a malformed score");
+      }
 
       applyRecited(score);
-      return Object.values(score).every((word) => word.status === "correct");
+      return (
+        score.words.length > 0 &&
+        score.words.every((word) => word.status === "correct")
+      );
     },
     [applyRecited],
   );

@@ -1,8 +1,9 @@
 import z from "zod";
 
-export const recitedVerseOutputSchema = z.object({
+export const wordEvalSchema = z.object({
+  wordId: z.number(),
   status: z.enum(["correct", "incorrect"]),
-  confidence: z.number().min(0).max(1),
+  heard: z.string().nullable(),
 });
 
-export type RecitedVerseOutputSchema = z.infer<typeof recitedVerseOutputSchema>;
+export type WordEvalSchema = z.infer<typeof wordEvalSchema>;
