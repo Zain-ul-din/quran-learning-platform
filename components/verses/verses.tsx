@@ -93,7 +93,7 @@ export function Verses({ verses }: { verses: Verse[] }) {
                       "cursor-pointer font-normal transition-colors duration-100 hover:text-primary",
                       recitedWord &&
                         (recitedWord.status === "correct"
-                          ? "text-green-500"
+                          ? "text-green-600 dark:text-green-500"
                           : "text-red-500"),
                     )}
                     key={word.id}
