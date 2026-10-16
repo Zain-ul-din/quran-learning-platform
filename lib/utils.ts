@@ -11,3 +11,11 @@ export function normalizeQuranEnTranslation(text: string) {
     .replace(/\s+/g, " ")
     .trim();
 }
+
+export function safeJsonParse(str: string) {
+  try {
+    return JSON.parse(str);
+  } catch {
+    return null;
+  }
+}

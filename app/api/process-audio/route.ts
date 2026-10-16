@@ -7,6 +7,7 @@ import { z } from "zod";
 import { encode } from "@toon-format/toon";
 
 import { pick } from "lodash";
+import { recitedVerseOutputSchema } from "@/lib/schema";
 
 const TRANSCRIPTION_URL = "https://api.openai.com/v1/audio/transcriptions";
 
@@ -60,15 +61,11 @@ export async function POST(req: NextRequest) {
     const schema = z
       .object(
         Object.fromEntries(
-          (context.verse.words || []).map((word, i) => {
-            return [
-              `${i + 1}_${word.text}`,
-              z.object({
-                status: z.enum(["correct", "incorrect"]),
-                confidence: z.number().min(0).max(1),
-              }),
-            ];
-          }),
+          (context.verse.words || [])
+            .filter((w) => w.charTypeName !== "end")
+            .map((word) => {
+              return [`${word.id}_${word.text}`, recitedVerseOutputSchema];
+            }),
         ),
       )
       .describe("All the words in Ayah in <position>_<word> format");

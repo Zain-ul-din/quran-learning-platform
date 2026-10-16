@@ -22,13 +22,39 @@ export function Verses({ verses }: { verses: Verse[] }) {
   const finalRef = useRef("");
   const draftRef = useRef("");
 
-  const { selectedVerse, setSelectedVerse } = useChapterStore();
+  const { selectedVerse, setSelectedVerse, recitedVerses } = useChapterStore();
+  const setVerses = useChapterStore((state) => state.setVerses);
+
+  const containerRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
     const firstVerse = verses[0];
     console.log("setting first verse: ", firstVerse);
+    setVerses(verses);
     setSelectedVerse(firstVerse);
-  }, [verses, setSelectedVerse]);
+  }, [verses, setSelectedVerse, setVerses]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const element = container?.querySelector(
+      `[data-verse="${selectedVerse?.id}"]`,
+    );
+
+    if (!container || !element) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const elementRect = element.getBoundingClientRect();
+
+    const scrollTop =
+      container.scrollTop +
+      (elementRect.top - containerRect.top) -
+      container.clientTop;
+
+    container.scrollTo({
+      top: scrollTop,
+      behavior: "smooth",
+    });
+  }, [selectedVerse?.id]);
 
   const handleOnPracticeAyah = (verseId: number) => {
     finalRef.current = "";
@@ -104,7 +130,10 @@ export function Verses({ verses }: { verses: Verse[] }) {
   };
 
   return (
-    <ul className="space-y-6 divide-y snap-y snap-mandatory scrollbar-none  overflow-y-auto divide-border relative">
+    <ul
+      ref={containerRef}
+      className="space-y-6 divide-y pb-[50dvh] snap-y snap-mandatory scrollbar-none  overflow-y-auto divide-border relative"
+    >
       {verses.map((verse) => {
         const wholeVerse = verse.textIndopakNastaleeq!;
 
@@ -112,30 +141,41 @@ export function Verses({ verses }: { verses: Verse[] }) {
         const words = verse.words?.filter(
           (word) => word.charTypeName !== "end",
         );
-
         const isActive = selectedVerse && verse.id === selectedVerse.id;
+        const recitedWords = recitedVerses[verse.id] ?? [];
 
         return (
           <li
             className={cn(
               "p-4 py-6 w-full snap-start",
-              !isActive && "opacity-40",
+              !isActive && "opacity-40 hover:opacity-50",
             )}
             // shadow-[inset_0px_0px_4px_1px] shadow-green-300
             key={verse.id}
             onClick={() => {
               setSelectedVerse(verse);
             }}
+            data-verse={`${verse.id}`}
           >
             <div
               lang="ar"
               dir="rtl"
-              className="tracking-normal text-3xl font-arabic text-balance leading-[2.5]"
+              className="tracking-normal text-3xl  font-arabic text-balance leading-[2.5]"
             >
               {words?.map((word) => {
+                const recitedWord = recitedWords.find(
+                  (rw) => rw.id === word.id,
+                );
+
                 return (
                   <span
-                    className="font-light hover:font-medium hover:text-primary transition-all duration-100 cursor-pointer"
+                    className={cn(
+                      "font-light hover:font-medium hover:text-primary transition-all duration-100 cursor-pointer",
+                      recitedWord &&
+                        (recitedWord.status === "correct"
+                          ? "text-green-600"
+                          : "text-red-500"),
+                    )}
                     key={word.id}
                   >
                     {
