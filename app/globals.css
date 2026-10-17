@@ -39,6 +39,8 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-play-foreground: var(--play-foreground);
+  --color-play: var(--play);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -101,12 +103,18 @@
   --primary-pressed: oklch(42% 0.09 165.61);
   --secondary-pressed: oklch(89% 0.012 164.87);
   --destructive-pressed: oklch(48% 0.18 27.33);
+  /* Play — cyan-700 reads clearly on the light Noor surface. */
+  --play: oklch(52% 0.095 223.128); /* #0E7490 */
+  --play-foreground: oklch(98.6% 0.01 217); /* #F0FDFA */
+  --play-pressed: oklch(44.3% 0.077 224.31); /* #155E75 */
   --button-primary-elevation: 0 var(--button-elevation-offset) 0
     var(--primary-pressed);
   --button-secondary-elevation: 0 var(--button-elevation-offset) 0
     var(--secondary-pressed);
   --button-destructive-elevation: 0 var(--button-elevation-offset) 0
     var(--destructive-pressed);
+  --button-play-elevation: 0 var(--button-elevation-offset) 0
+    var(--play-pressed);
 }
 
 /* Noor — Green-Black & Emerald Jade (dark) */
@@ -153,12 +161,18 @@
   --primary-pressed: oklch(61% 0.12 163.23);
   --secondary-pressed: oklch(18% 0.014 168.63);
   --destructive-pressed: oklch(55% 0.14 22.22);
+  /* Play — cyan-400 glows against the dark surface. */
+  --play: oklch(78.9% 0.154 211.53); /* #22D3EE */
+  --play-foreground: oklch(27% 0.045 231); /* #083344 */
+  --play-pressed: oklch(71.5% 0.143 215.221); /* #06B6D4 */
   --button-primary-elevation: 0 var(--button-elevation-offset) 0
     var(--primary-pressed);
   --button-secondary-elevation: 0 var(--button-elevation-offset) 0
     var(--secondary-pressed);
   --button-destructive-elevation: 0 var(--button-elevation-offset) 0
     var(--destructive-pressed);
+  --button-play-elevation: 0 var(--button-elevation-offset) 0
+    var(--play-pressed);
 }
 
 @layer base {
@@ -199,6 +213,10 @@
 
   .button-elevation-destructive {
     --button-elevation: var(--button-destructive-elevation);
+  }
+
+  .button-elevation-play {
+    --button-elevation: var(--button-play-elevation);
   }
 }
 

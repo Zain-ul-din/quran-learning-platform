@@ -19,7 +19,7 @@ export default async function Page({
   const { id } = await params;
 
   await connection();
-  const [verses, chapter] = await Promise.all([
+  const [verses, chapter, recitation] = await Promise.all([
     qfClient.content.v4.verses.byChapter(id, {
       fields: { textIndopakNastaleeq: true, textUthmani: true },
       words: true,
@@ -32,12 +32,22 @@ export default async function Page({
       page: 1,
     }),
     qfClient.content.v4.chapters.get(id),
+    qfClient.content.v4.audio.chapterRecitation.get("7", id, {
+      segments: true,
+      fields: {
+        id: true,
+        chapterId: true,
+        segments: true,
+        format: true,
+        audioUrl: true,
+      },
+    }),
   ]);
 
   if (!verses) return notFound();
 
   return (
-    <ChapterHarness chapter={chapter}>
+    <ChapterHarness chapter={chapter} recitation={recitation}>
       <ChapterHeader chapter={chapter} />
       <Verses verses={verses} />
       <ChapterFooter />

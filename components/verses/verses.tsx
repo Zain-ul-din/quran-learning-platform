@@ -1,22 +1,15 @@
 "use client";
 import { Verse } from "@quranjs/api";
-import { useEffect, useRef, useState } from "react";
-import { Button } from "../ui/button";
-import { HugeiconsIcon } from "@hugeicons/react";
-import AudioWave02Icon from "@hugeicons/core-free-icons/AudioWave02Icon";
-import { motion } from "motion/react";
+import { useEffect, useRef } from "react";
 import { cn } from "cn";
-import { play } from "cuelume";
 import { normalizeQuranEnTranslation } from "@/lib/utils";
 import { useChapterStore } from "@/stores/chapter-store";
 
 export function Verses({ verses }: { verses: Verse[] }) {
-  const [pc, setPc] = useState<RTCPeerConnection | null>(null);
-
   const { processing, selectedVerse, setSelectedVerse, recitedVerses } =
     useChapterStore();
-  const setVerses = useChapterStore((state) => state.setVerses);
 
+  const setVerses = useChapterStore((state) => state.setVerses);
   const containerRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
@@ -121,49 +114,6 @@ export function Verses({ verses }: { verses: Verse[] }) {
           </li>
         );
       })}
-
-      {pc && (
-        <motion.div
-          initial={{
-            translateY: "4rem",
-          }}
-          animate={{
-            translateY: "0rem",
-          }}
-          onAnimationComplete={() => {
-            play("open", {
-              theme: "bubble",
-            });
-          }}
-          className="fixed bottom-4 -translate-x-1/2 left-1/2"
-        >
-          <div className="px-4 w-fit bg-background/20 border py-2 rounded-md">
-            <Button
-              onClick={() => {
-                pc.close();
-                setPc(null);
-                play("close", {
-                  theme: "bubble",
-                });
-              }}
-              variant={"destructive"}
-              className={"hover:scale-105"}
-            >
-              <HugeiconsIcon icon={AudioWave02Icon} />
-              Stop Recording{" "}
-              <span className="animate-bounce transition-all delay-100 inline-block">
-                .
-              </span>
-              <span className="animate-bounce -translate-x-1 transition-all delay-150 inline-block">
-                .
-              </span>
-              <span className="animate-bounce -translate-x-2 transition-all delay-200 inline-block">
-                .
-              </span>
-            </Button>
-          </div>
-        </motion.div>
-      )}
     </ul>
   );
 }

@@ -9,14 +9,22 @@ import {
 } from "react";
 import { useMicrophone } from "voice-glow";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Mic01Icon } from "@hugeicons/core-free-icons";
+import {
+  AudioWave02Icon,
+  Mic01Icon,
+  PauseIcon,
+} from "@hugeicons/core-free-icons";
 import { play, press, release } from "cuelume";
 import { cn } from "cn";
 import { useShallow } from "zustand/react/shallow";
 
 import { RecordVisualizer } from "@/components/chapter/record-visualizer";
 import { Spinner } from "@/components/ui/spinner";
-import { useChapterStore, type RecitedWord } from "@/stores/chapter-store";
+import {
+  useChapterStore,
+  type ChapterRecitationWithTiming,
+  type RecitedWord,
+} from "@/stores/chapter-store";
 import { safeJsonParse } from "@/lib/utils";
 import type { WordEvalSchema } from "@/lib/schema";
 
@@ -80,6 +88,31 @@ function formatElapsed(ms: number) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
+type RecitationClip = { startMs: number; endMs: number };
+
+/**
+ * Locates the selected verse inside the chapter file's timing data so the
+ * reference recitation can be clipped to just that ayah. Returns `null` when
+ * no timings came back, which means the whole chapter file plays instead.
+ */
+const clipForVerse = (
+  recitation: ChapterRecitationWithTiming | null,
+  verseKey: string | undefined,
+): RecitationClip | null => {
+  if (!verseKey) return null;
+  const timestamp = recitation?.timestamps?.find(
+    (entry) => entry?.verseKey === verseKey,
+  );
+  if (!timestamp || typeof timestamp.timestampFrom !== "number") return null;
+  if (
+    typeof timestamp.timestampTo !== "number" ||
+    timestamp.timestampTo <= timestamp.timestampFrom
+  ) {
+    return null;
+  }
+  return { startMs: timestamp.timestampFrom, endMs: timestamp.timestampTo };
+};
+
 export function ChapterFooter() {
   const microphone = useMicrophone();
   const {
@@ -94,10 +127,11 @@ export function ChapterFooter() {
     readMicSupportOnServer,
   );
 
-  const { chapter, verse } = useChapterStore(
+  const { chapter, verse, recitation } = useChapterStore(
     useShallow((state) => ({
       chapter: state.chapter,
       verse: state.selectedVerse,
+      recitation: state.recitation,
     })),
   );
   const setRecitedVerses = useChapterStore((state) => state.setRecitedVerses);
@@ -122,6 +156,67 @@ export function ChapterFooter() {
 
   const isRecording = phase === "recording";
   const ready = Boolean(chapter && verse) && supported;
+
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const stopRecitation = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.onloadedmetadata = null;
+    audio.pause();
+    audio.currentTime = 0;
+    setPlaying(false);
+  }, []);
+
+  /** Plays the reference recitation — clipped to the selected ayah when the
+   * chapter file came with timings, otherwise the whole chapter. */
+  const toggleRecitation = useCallback(() => {
+    if (playing) {
+      stopRecitation();
+      return;
+    }
+
+    const { recitation, selectedVerse } = useChapterStore.getState();
+    if (!recitation?.audioUrl) return;
+
+    const audio = audioRef.current ?? (audioRef.current = new Audio());
+    const clip = clipForVerse(recitation, selectedVerse?.verseKey);
+
+    audio.src = recitation.audioUrl;
+    audio.onended = () => stopRecitation();
+    audio.ontimeupdate = clip
+      ? () => {
+          if (audio.currentTime * 1000 >= clip.endMs) stopRecitation();
+        }
+      : null;
+
+    // Seeking before the metadata lands is unreliable — re-apply once it does.
+    const seek = () => {
+      audio.currentTime = clip ? clip.startMs / 1000 : 0;
+    };
+    audio.onloadedmetadata = seek;
+    if (audio.readyState >= HTMLMediaElement.HAVE_METADATA) seek();
+
+    // Claim the playing state up front so a very short clip that ends before
+    // the promise settles still leaves the button showing "Play".
+    setPlaying(true);
+    audio.play().catch((err) => {
+      console.error("The recitation could not be played", err);
+      stopRecitation();
+    });
+  }, [playing, stopRecitation]);
+
+  // A new verse changes which clip belongs on screen; silence the old one.
+  useEffect(() => {
+    stopRecitation();
+  }, [verse?.id, stopRecitation]);
+
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause();
+    };
+  }, []);
 
   const applyRecited = useCallback(
     (payload: RecitedScore | null) => {
@@ -278,6 +373,8 @@ export function ChapterFooter() {
 
     holdingRef.current = true;
     press("tap", { theme: "bubble" });
+    // The reference recitation would bleed into the microphone.
+    stopRecitation();
     setPhase("requesting");
 
     let mediaStream: MediaStream | null = null;
@@ -299,12 +396,14 @@ export function ChapterFooter() {
     startRecorder(mediaStream);
   }, [
     ready,
-    startMic,
-    stopMic,
+    reciteTooltipHint,
     setPhase,
-    startRecorder,
+    stopRecitation,
     verse,
     setRecitedVerses,
+    startRecorder,
+    startMic,
+    stopMic,
   ]);
 
   /** Letting go (or leaving) ends the recording and sends the audio off. */
@@ -385,6 +484,9 @@ export function ChapterFooter() {
 
   const tone = TONES[phase];
 
+  // Audio playback needs the chapter file, not microphone support.
+  const playable = Boolean(recitation?.audioUrl && verse);
+
   const hint = !supported
     ? "Recording is not supported in this browser"
     : !ready
@@ -423,73 +525,103 @@ export function ChapterFooter() {
           className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-background via-background/30 to-transparent"
         />
 
-        <motion.button
-          type="button"
-          disabled={!ready}
-          aria-label={
-            isRecording
-              ? "Release to stop recording"
-              : "Hold to record your recitation"
-          }
-          className={cn(
-            "button-elevated group pointer-events-auto relative inline-flex h-12 min-w-52 items-center justify-center gap-2 rounded-md border px-5 font-semibold",
-            "touch-none select-none",
-            "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-            "disabled:cursor-not-allowed disabled:opacity-60",
-            "relative",
-            tone.face,
-            tone.elevation,
-          )}
-          onPointerDown={(event) => {
-            if (event.button !== 0 || !event.isPrimary) return;
-            void beginHold();
-          }}
-          onPointerUp={endHold}
-          onPointerLeave={endHold}
-          onPointerCancel={endHold}
-          onContextMenu={(event) => event.preventDefault()}
-          onKeyDown={handleKeyDown}
-          onKeyUp={handleKeyUp}
-          onBlur={endHoldIfRecording}
-        >
-          {reciteTooltipHint.visible && (
-            <motion.div
-              initial={{
-                scaleX: 0,
-                scaleY: 0.2,
-              }}
-              animate={{
-                scaleX: 1,
-                scaleY: 1,
-              }}
-              transition={{
-                delay: 1,
-              }}
-              className="absolute bottom-full left-1/2 -translate-x-1/2 -translate-y-5 
+        <div className="flex items-center gap-2">
+          <motion.button
+            type="button"
+            disabled={!ready}
+            aria-label={
+              isRecording
+                ? "Release to stop recording"
+                : "Hold to record your recitation"
+            }
+            className={cn(
+              "button-elevated group pointer-events-auto relative inline-flex h-12 min-w-52 items-center justify-center gap-2 rounded-md border px-5 font-semibold",
+              "touch-none select-none",
+              "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "disabled:cursor-not-allowed disabled:opacity-60",
+              "relative",
+              tone.face,
+              tone.elevation,
+            )}
+            onPointerDown={(event) => {
+              if (event.button !== 0 || !event.isPrimary) return;
+              void beginHold();
+            }}
+            onPointerUp={endHold}
+            onPointerLeave={endHold}
+            onPointerCancel={endHold}
+            onContextMenu={(event) => event.preventDefault()}
+            onKeyDown={handleKeyDown}
+            onKeyUp={handleKeyUp}
+            onBlur={endHoldIfRecording}
+          >
+            {reciteTooltipHint.visible && (
+              <motion.div
+                initial={{
+                  scaleX: 0,
+                  scaleY: 0.2,
+                }}
+                animate={{
+                  scaleX: 1,
+                  scaleY: 1,
+                }}
+                transition={{
+                  delay: 1,
+                }}
+                className="absolute bottom-full left-1/2 -translate-x-1/2 -translate-y-5 
                    bg-foreground/80 text-background p-2 whitespace-nowrap rounded-md 
                    text-base font-medium shadow-sm
                    before:content-[''] before:absolute before:top-full before:left-1/2 before:-translate-x-1/2 
                    before:border-[6px] before:border-solid 
                    before:border-t-foreground/80 before:border-r-transparent before:border-b-transparent before:border-l-transparent"
-            >
-              Finish the Ayah to see your results.
-            </motion.div>
-          )}
-          <span className="grid place-items-center">
-            {phase === "processing" ? (
-              <Spinner className="size-5" />
-            ) : isRecording ? (
-              <RecordVisualizer stream={stream} active={isRecording} bars={5} />
-            ) : (
+              >
+                Finish the Ayah to see your results.
+              </motion.div>
+            )}
+            <span className="grid place-items-center">
+              {phase === "processing" ? (
+                <Spinner className="size-5" />
+              ) : isRecording ? (
+                <RecordVisualizer
+                  stream={stream}
+                  active={isRecording}
+                  bars={5}
+                />
+              ) : (
+                <HugeiconsIcon
+                  icon={Mic01Icon}
+                  strokeWidth={1.75}
+                  className="size-5"
+                />
+              )}
+            </span>
+            <span>{isRecording ? "Release to stop" : "Hold to recite"}</span>
+          </motion.button>
+
+          <button
+            type="button"
+            disabled={!playable}
+            onClick={toggleRecitation}
+            className={cn(
+              "button-elevated button-elevation-play group pointer-events-auto relative inline-flex h-12 items-center justify-center gap-2 rounded-md border px-5 font-semibold",
+              "border-play bg-play text-play-foreground",
+              "touch-none select-none",
+              "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+              "disabled:cursor-not-allowed disabled:opacity-60",
+            )}
+          >
+            <span className="grid place-items-center">
               <HugeiconsIcon
-                icon={Mic01Icon}
+                icon={playing ? PauseIcon : AudioWave02Icon}
                 strokeWidth={1.75}
                 className="size-5"
               />
-            )}
-          </span>
-          <span>{isRecording ? "Release to stop" : "Hold to recite"}</span>
-        </motion.button>
+            </span>
+            <span className="sr-only">
+              {playing ? "Pause" : "Play"} the reference recitation
+            </span>
+          </button>
+        </div>
 
         <div
           className="flex items-center gap-2 text-xs mt-4"

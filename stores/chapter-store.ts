@@ -1,15 +1,31 @@
 "use client";
 import { create } from "zustand";
-import type { Chapter, Verse, Word } from "@quranjs/api";
+import type { Chapter, ChapterRecitation, Verse, Word } from "@quranjs/api";
 import { WordEvalSchema } from "@/lib/schema";
 
 export type RecitedWord = Word & WordEvalSchema;
+
+export type RecitationSegment = [number, number, number];
+
+export type RecitationTimestamp = {
+  verseKey: string;
+  timestampFrom: number;
+  timestampTo: number;
+  duration?: number;
+  segments?: RecitationSegment[];
+};
+
+export type ChapterRecitationWithTiming = ChapterRecitation & {
+  timestamps?: RecitationTimestamp[];
+};
 
 interface ChapterState {
   chapter: Chapter | null;
   verses: Verse[];
   selectedVerse: Verse | null;
   processing: boolean;
+  recitation: ChapterRecitationWithTiming | null;
+  setRecitation: (recitation: ChapterRecitationWithTiming | null) => void;
   setChapter: (chapter: Chapter) => void;
   setVerses: (verses: Verse[]) => void;
   setSelectedVerse: (verse: Verse | null) => void;
@@ -26,7 +42,9 @@ export const useChapterStore = create<ChapterState>((set, get) => ({
   verses: [],
   selectedVerse: null,
   processing: false,
+  recitation: null,
   recitedVerses: {},
+  setRecitation: (recitation) => set({ recitation }),
   setRecitedVerses: (verseId, words) =>
     set((state) => ({
       recitedVerses: { ...state.recitedVerses, [verseId]: words },
@@ -34,6 +52,7 @@ export const useChapterStore = create<ChapterState>((set, get) => ({
   setChapter: (chapter) =>
     set({
       chapter,
+      recitation: null,
       recitedVerses: {},
     }),
   setVerses: (verses) => set({ verses }),
