@@ -47,9 +47,9 @@ export default async function Page({
   if (!verses) return notFound();
 
   return (
-    <ChapterHarness chapter={chapter} recitation={recitation}>
-      <ChapterHeader chapter={chapter} />
-      <Verses verses={verses} />
+    <ChapterHarness verses={verses} chapter={chapter} recitation={recitation}>
+      <ChapterHeader />
+      <Verses />
       <ChapterFooter />
     </ChapterHarness>
   );

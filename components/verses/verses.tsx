@@ -1,22 +1,14 @@
 "use client";
-import { Verse } from "@quranjs/api";
 import { useEffect, useRef } from "react";
 import { cn } from "cn";
 import { normalizeQuranEnTranslation } from "@/lib/utils";
 import { useChapterStore } from "@/stores/chapter-store";
 
-export function Verses({ verses }: { verses: Verse[] }) {
-  const { processing, selectedVerse, setSelectedVerse, recitedVerses } =
+export function Verses() {
+  const { verses, processing, selectedVerse, setSelectedVerse, recitedVerses } =
     useChapterStore();
 
-  const setVerses = useChapterStore((state) => state.setVerses);
   const containerRef = useRef<HTMLUListElement>(null);
-
-  useEffect(() => {
-    const firstVerse = verses[0];
-    setVerses(verses);
-    setSelectedVerse(firstVerse);
-  }, [verses, setSelectedVerse, setVerses]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -45,7 +37,6 @@ export function Verses({ verses }: { verses: Verse[] }) {
       ref={containerRef}
       className={cn(
         "relative flex-1  divide-y divide-border overflow-y-auto pb-[50dvh] scrollbar-none",
-        // "snap-y snap-mandatory"
       )}
     >
       {verses.map((verse) => {

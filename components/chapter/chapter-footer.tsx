@@ -21,6 +21,10 @@ import { useShallow } from "zustand/react/shallow";
 import { RecordVisualizer } from "@/components/chapter/record-visualizer";
 import { Spinner } from "@/components/ui/spinner";
 import {
+  ElevatedButton,
+  type ElevatedButtonVariant,
+} from "@/components/ui/elevated-button";
+import {
   useChapterStore,
   type ChapterRecitationWithTiming,
   type RecitedWord,
@@ -35,35 +39,16 @@ type Phase = "idle" | "requesting" | "recording" | "processing" | "error";
 
 type RecitedScore = { words: WordEvalSchema[] };
 
-type Tone = {
-  face: string;
-  elevation: string;
-};
-
 /**
- * Semantic button colours, one entry per phase.
+ * Semantic button colour, one entry per phase — face and its hard shadow
+ * travel together as a single `ElevatedButton` variant.
  */
-const TONES: Record<Phase, Tone> = {
-  idle: {
-    face: "border-primary bg-primary text-primary-foreground",
-    elevation: "button-elevation-primary",
-  },
-  requesting: {
-    face: "border-primary bg-primary text-primary-foreground",
-    elevation: "button-elevation-primary",
-  },
-  recording: {
-    face: "border-destructive bg-destructive text-primary-foreground",
-    elevation: "button-elevation-destructive",
-  },
-  processing: {
-    face: "border-border bg-secondary text-secondary-foreground",
-    elevation: "button-elevation-secondary",
-  },
-  error: {
-    face: "border-destructive bg-destructive text-primary-foreground",
-    elevation: "button-elevation-destructive",
-  },
+const PHASE_VARIANTS: Record<Phase, ElevatedButtonVariant> = {
+  idle: "primary",
+  requesting: "primary",
+  recording: "destructive",
+  processing: "secondary",
+  error: "destructive",
 };
 
 /** Below this the clip is too thin to score, so it is dropped silently. */
@@ -482,7 +467,7 @@ export function ChapterFooter() {
     return () => window.clearInterval(id);
   }, [phase]);
 
-  const tone = TONES[phase];
+  const variant = PHASE_VARIANTS[phase];
 
   // Audio playback needs the chapter file, not microphone support.
   const playable = Boolean(recitation?.audioUrl && verse);
@@ -526,23 +511,16 @@ export function ChapterFooter() {
         />
 
         <div className="flex items-center gap-2">
-          <motion.button
-            type="button"
+          <ElevatedButton
+            variant={variant}
+            size="wide"
             disabled={!ready}
             aria-label={
               isRecording
                 ? "Release to stop recording"
                 : "Hold to record your recitation"
             }
-            className={cn(
-              "button-elevated group pointer-events-auto relative inline-flex h-12 min-w-52 items-center justify-center gap-2 rounded-md border px-5 font-semibold",
-              "touch-none select-none",
-              "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-              "disabled:cursor-not-allowed disabled:opacity-60",
-              "relative",
-              tone.face,
-              tone.elevation,
-            )}
+            className="pointer-events-auto"
             onPointerDown={(event) => {
               if (event.button !== 0 || !event.isPrimary) return;
               void beginHold();
@@ -596,19 +574,13 @@ export function ChapterFooter() {
               )}
             </span>
             <span>{isRecording ? "Release to stop" : "Hold to recite"}</span>
-          </motion.button>
+          </ElevatedButton>
 
-          <button
-            type="button"
+          <ElevatedButton
+            variant="play"
             disabled={!playable}
             onClick={toggleRecitation}
-            className={cn(
-              "button-elevated button-elevation-play group pointer-events-auto relative inline-flex h-12 items-center justify-center gap-2 rounded-md border px-5 font-semibold",
-              "border-play bg-play text-play-foreground",
-              "touch-none select-none",
-              "outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-              "disabled:cursor-not-allowed disabled:opacity-60",
-            )}
+            className="pointer-events-auto"
           >
             <span className="grid place-items-center">
               <HugeiconsIcon
@@ -620,7 +592,7 @@ export function ChapterFooter() {
             <span className="sr-only">
               {playing ? "Pause" : "Play"} the reference recitation
             </span>
-          </button>
+          </ElevatedButton>
         </div>
 
         <div

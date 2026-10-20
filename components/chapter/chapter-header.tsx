@@ -1,14 +1,17 @@
 "use client";
-import { Chapter } from "@quranjs/api";
 import { Button } from "../ui/button";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 
 import { useRouter } from "next/navigation";
 import { play } from "cuelume";
+import { useChapterStore } from "@/stores/chapter-store";
 
-export function ChapterHeader({ chapter }: { chapter: Chapter }) {
+export function ChapterHeader() {
   const router = useRouter();
+  const { chapter } = useChapterStore();
+
+  if (!chapter) return null;
 
   return (
     <header className="relative border-b bg-card p-4 py-6 flex items-center w-full  overflow-hidden">
