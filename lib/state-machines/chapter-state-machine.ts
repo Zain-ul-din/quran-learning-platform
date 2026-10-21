@@ -65,6 +65,7 @@ export const createChapterStateMachine = ({
               return {
                 ...context.recitationContext,
                 error: undefined,
+                notice: undefined,
               };
             },
           }),
@@ -126,6 +127,17 @@ export const createChapterStateMachine = ({
                   target: "#root.idle",
                 },
               ],
+              "audio.permissionGranted": {
+                target: "#root.idle",
+                actions: assign({
+                  recitationContext: ({ context }) => {
+                    return {
+                      ...context.recitationContext,
+                      notice: "Microphone access granted — hold to recite.",
+                    };
+                  },
+                }),
+              },
               "audio.error": {
                 target: "#root.idle",
                 actions: assign({

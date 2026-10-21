@@ -29,6 +29,7 @@ export function ChapterFooter() {
   const reciteTooltipHint = useUIHints("ui.hints.hold-to-recite");
   const playing = state.matches("listening");
   const error = recitationContext.error;
+  const notice = recitationContext.notice;
 
   const beginHold = useCallback(() => {
     reciteTooltipHint.dismiss();
@@ -199,7 +200,7 @@ export function ChapterFooter() {
                   : "text-muted-foreground",
             )}
           >
-            {error ?? hint}
+            {error ?? notice ?? hint}
           </span>
         </div>
       </div>

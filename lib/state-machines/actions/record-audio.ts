@@ -1,7 +1,8 @@
 import { fromCallback } from "xstate";
 
 export const recordAudio = fromCallback<
-  | { type: "audio.recorded"; blob: Blob }
+  | { type: "audio.recoded"; blob: Blob }
+  | { type: "audio.permissionGranted" }
   | { type: "audio.error"; error: unknown }
   | { type: "audio.stream"; stream: MediaStream | null }
   | { type: "audio.elapsedMs"; elapsedMs: number }
@@ -15,33 +16,40 @@ export const recordAudio = fromCallback<
 
   const chunks: Blob[] = [];
 
+  const stopTracks = () => {
+    stream?.getTracks().forEach((track) => track.stop());
+    stream = null;
+  };
+
+  const readMicPermission = async (): Promise<PermissionState | "unknown"> => {
+    try {
+      const status = await navigator.permissions.query({ name: "microphone" });
+      return status.state;
+    } catch {
+      return "unknown";
+    }
+  };
+
   async function start() {
     try {
-      const permissionStatus = await navigator.permissions.query({
-        name: "microphone",
-      });
-      const permissionBefore = permissionStatus.state;
+      const permissionBefore = await readMicPermission();
 
       stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
       });
+      const permissionAfter = await readMicPermission();
 
-      if (
-        permissionBefore != "granted" &&
-        permissionStatus.state === "granted"
-      ) {
-        return sendBack({
-          type: "audio.recoded",
-          blob: new Blob([], { type: recorder?.mimeType }),
-        });
+      if (canceled) {
+        stopTracks();
+        return;
+      }
+
+      if (permissionBefore !== "granted" && permissionAfter === "granted") {
+        stopTracks();
+        return sendBack({ type: "audio.permissionGranted" });
       }
 
       sendBack({ type: "audio.stream", stream });
-
-      if (canceled) {
-        stream.getTracks().forEach((track) => track.stop());
-        return;
-      }
 
       recorder = new MediaRecorder(
         stream,

@@ -27,6 +27,7 @@ export type ChapterStateMachineContext = {
     elapsedMs?: number;
     audio?: Blob;
     error?: string;
+    notice?: string;
   };
   recitedVerses: {
     [id: string]: RecitedWord[];
@@ -69,6 +70,7 @@ export type Events =
         blob: Blob;
       }
     >
+  | Event<"audio.permissionGranted">
   | Event<
       "audio.error",
       {
