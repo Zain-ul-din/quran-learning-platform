@@ -5,13 +5,13 @@ import { ArrowLeft01Icon } from "@hugeicons/core-free-icons";
 
 import { useRouter } from "next/navigation";
 import { play } from "cuelume";
-import { useChapterStore } from "@/stores/chapter-store";
+import { use } from "react";
+import { ChapterStateMachineContext } from "./chapter-state-machine-context";
 
 export function ChapterHeader() {
   const router = useRouter();
-  const { chapter } = useChapterStore();
-
-  if (!chapter) return null;
+  const [state] = use(ChapterStateMachineContext);
+  const chapter = state.context.chapter;
 
   return (
     <header className="relative border-b bg-card p-4 py-6 flex items-center w-full  overflow-hidden">

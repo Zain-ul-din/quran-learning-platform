@@ -1,4 +1,5 @@
 export { cn } from "cn";
+import { IncompleteJsonParser } from "incomplete-json-parser";
 
 export function normalizeQuranEnTranslation(text: string) {
   return text
@@ -14,8 +15,17 @@ export function normalizeQuranEnTranslation(text: string) {
 
 export function safeJsonParse(str: string) {
   try {
-    return JSON.parse(str);
+    const parser = new IncompleteJsonParser();
+    parser.write(str);
+    return parser.getObjects();
   } catch {
     return null;
   }
+}
+
+export function formatElapsed(ms: number) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }

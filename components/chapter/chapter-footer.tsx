@@ -1,492 +1,60 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
-import { useMicrophone } from "voice-glow";
+import { use, useCallback, useEffect, useMemo } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   AudioWave02Icon,
   Mic01Icon,
   PauseIcon,
 } from "@hugeicons/core-free-icons";
-import { play, press, release } from "cuelume";
 import { cn } from "cn";
-import { useShallow } from "zustand/react/shallow";
-
 import { RecordVisualizer } from "@/components/chapter/record-visualizer";
 import { Spinner } from "@/components/ui/spinner";
 import {
   ElevatedButton,
   type ElevatedButtonVariant,
 } from "@/components/ui/elevated-button";
-import {
-  useChapterStore,
-  type ChapterRecitationWithTiming,
-  type RecitedWord,
-} from "@/stores/chapter-store";
-import { safeJsonParse } from "@/lib/utils";
-import type { WordEvalSchema } from "@/lib/schema";
 
 import { motion } from "motion/react";
 import { useUIHints } from "@/hooks/use-ui-hints";
-
-type Phase = "idle" | "requesting" | "recording" | "processing" | "error";
-
-type RecitedScore = { words: WordEvalSchema[] };
-
-/**
- * Semantic button colour, one entry per phase — face and its hard shadow
- * travel together as a single `ElevatedButton` variant.
- */
-const PHASE_VARIANTS: Record<Phase, ElevatedButtonVariant> = {
-  idle: "primary",
-  requesting: "primary",
-  recording: "destructive",
-  processing: "secondary",
-  error: "destructive",
-};
-
-/** Below this the clip is too thin to score, so it is dropped silently. */
-const MIN_HOLD_MS = 300;
-
-/**
- * `navigator.mediaDevices` cannot be probed while rendering on the server, so
- * the check goes through `useSyncExternalStore`: the server (and the
- * hydrating client) both see the optimistic `true`, and the real answer lands
- * right after hydration instead of fighting the server-rendered markup.
- */
-const subscribeNothing = () => () => {};
-const readMicSupport = () =>
-  typeof navigator !== "undefined" &&
-  Boolean(navigator.mediaDevices?.getUserMedia);
-const readMicSupportOnServer = () => true;
-
-function formatElapsed(ms: number) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
-}
-
-type RecitationClip = { startMs: number; endMs: number };
-
-/**
- * Locates the selected verse inside the chapter file's timing data so the
- * reference recitation can be clipped to just that ayah. Returns `null` when
- * no timings came back, which means the whole chapter file plays instead.
- */
-const clipForVerse = (
-  recitation: ChapterRecitationWithTiming | null,
-  verseKey: string | undefined,
-): RecitationClip | null => {
-  if (!verseKey) return null;
-  const timestamp = recitation?.timestamps?.find(
-    (entry) => entry?.verseKey === verseKey,
-  );
-  if (!timestamp || typeof timestamp.timestampFrom !== "number") return null;
-  if (
-    typeof timestamp.timestampTo !== "number" ||
-    timestamp.timestampTo <= timestamp.timestampFrom
-  ) {
-    return null;
-  }
-  return { startMs: timestamp.timestampFrom, endMs: timestamp.timestampTo };
-};
+import { ChapterStateMachineContext } from "./chapter-state-machine-context";
+import { formatElapsed } from "@/lib/utils";
+import { play } from "cuelume";
 
 export function ChapterFooter() {
-  const microphone = useMicrophone();
-  const {
-    start: startMic,
-    stop: stopMic,
-    stream,
-    state: micState,
-  } = microphone;
-  const supported = useSyncExternalStore(
-    subscribeNothing,
-    readMicSupport,
-    readMicSupportOnServer,
-  );
+  const [state, send] = use(ChapterStateMachineContext);
+  const { recitationContext } = state.context;
 
-  const { chapter, verse, recitation } = useChapterStore(
-    useShallow((state) => ({
-      chapter: state.chapter,
-      verse: state.selectedVerse,
-      recitation: state.recitation,
-    })),
-  );
-  const setRecitedVerses = useChapterStore((state) => state.setRecitedVerses);
-  const selectNextVerse = useChapterStore((state) => state.selectNextVerse);
-  const setProcessing = useChapterStore((state) => state.setProcessing);
-
-  const [phase, setPhaseState] = useState<Phase>("idle");
-  const [elapsedMs, setElapsedMs] = useState(0);
-
-  const phaseRef = useRef<Phase>("idle");
-  const holdingRef = useRef(false);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const startedAtRef = useRef(0);
-
+  const elapsedMs = recitationContext.elapsedMs ?? 0;
   const reciteTooltipHint = useUIHints("ui.hints.hold-to-recite");
+  const playing = state.matches("listening");
+  const error = recitationContext.error;
 
-  const setPhase = useCallback((next: Phase) => {
-    phaseRef.current = next;
-    setPhaseState(next);
-  }, []);
+  const beginHold = useCallback(() => {
+    reciteTooltipHint.dismiss();
+    send({ type: "RECORD" });
+  }, [send, reciteTooltipHint]);
 
-  const isRecording = phase === "recording";
-  const ready = Boolean(chapter && verse) && supported;
+  const endHold = useCallback(() => send({ type: "STOP" }), [send]);
 
-  const [playing, setPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const stopRecitation = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.onloadedmetadata = null;
-    audio.pause();
-    audio.currentTime = 0;
-    setPlaying(false);
-  }, []);
-
-  /** Plays the reference recitation — clipped to the selected ayah when the
-   * chapter file came with timings, otherwise the whole chapter. */
-  const toggleRecitation = useCallback(() => {
-    if (playing) {
-      stopRecitation();
-      return;
-    }
-
-    const { recitation, selectedVerse } = useChapterStore.getState();
-    if (!recitation?.audioUrl) return;
-
-    const audio = audioRef.current ?? (audioRef.current = new Audio());
-    const clip = clipForVerse(recitation, selectedVerse?.verseKey);
-
-    audio.src = recitation.audioUrl;
-    audio.onended = () => stopRecitation();
-    audio.ontimeupdate = clip
-      ? () => {
-          if (audio.currentTime * 1000 >= clip.endMs) stopRecitation();
-        }
-      : null;
-
-    // Seeking before the metadata lands is unreliable — re-apply once it does.
-    const seek = () => {
-      audio.currentTime = clip ? clip.startMs / 1000 : 0;
-    };
-    audio.onloadedmetadata = seek;
-    if (audio.readyState >= HTMLMediaElement.HAVE_METADATA) seek();
-
-    // Claim the playing state up front so a very short clip that ends before
-    // the promise settles still leaves the button showing "Play".
-    setPlaying(true);
-    audio.play().catch((err) => {
-      console.error("The recitation could not be played", err);
-      stopRecitation();
-    });
-  }, [playing, stopRecitation]);
-
-  // A new verse changes which clip belongs on screen; silence the old one.
-  useEffect(() => {
-    stopRecitation();
-  }, [verse?.id, stopRecitation]);
-
-  useEffect(() => {
-    return () => {
-      audioRef.current?.pause();
-    };
-  }, []);
-
-  const applyRecited = useCallback(
-    (payload: RecitedScore | null) => {
-      if (!payload || !Array.isArray(payload.words)) return;
-
-      const { selectedVerse } = useChapterStore.getState();
-      if (!selectedVerse?.words?.length) return;
-
-      const recitedWords = payload.words
-        .map((entry) => {
-          if (!entry || typeof entry !== "object") return null;
-          const word = selectedVerse.words!.find((w) => w.id === entry.wordId);
-          if (!word) return null;
-          return { ...word, ...entry } as RecitedWord;
-        })
-        .filter((word): word is RecitedWord => word !== null);
-
-      if (recitedWords.length > 0) {
-        setRecitedVerses(selectedVerse.id, recitedWords);
-      }
-    },
-    [setRecitedVerses],
-  );
-
-  /**
-   * Uploads the clip, paints the score into the store, and resolves `true`
-   * when every word came back correct.
-   */
-  const sendAudio = useCallback(
-    async (blob: Blob): Promise<boolean> => {
-      const { chapter, selectedVerse } = useChapterStore.getState();
-      if (!chapter || !selectedVerse) return false;
-
-      const formData = new FormData();
-      const extension = blob.type.includes("mp4") ? "m4a" : "webm";
-      formData.append(
-        "audio",
-        new File([blob], `recording.${extension}`, { type: blob.type }),
-      );
-      formData.append(
-        "context",
-        JSON.stringify({ chapter, verse: selectedVerse }),
-      );
-
-      const response = await fetch("/api/process-audio", {
-        method: "POST",
-        body: formData,
-      });
-      if (!response.ok || !response.body) {
-        throw new Error(`process-audio responded with ${response.status}`);
-      }
-
-      // The route streams the score as a single JSON object — read to the
-      // end, then parse once.
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let text = "";
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (value) text += decoder.decode(value, { stream: true });
-        if (done) break;
-      }
-      text += decoder.decode();
-
-      const score: RecitedScore | null = safeJsonParse(text);
-
-      if (!score || !Array.isArray(score.words)) {
-        throw new Error("process-audio sent a malformed score");
-      }
-
-      applyRecited(score);
-      return (
-        score.words.length > 0 &&
-        score.words.every((word) => word.status === "correct")
-      );
-    },
-    [applyRecited],
-  );
-
-  const startRecorder = useCallback(
-    (mediaStream: MediaStream) => {
-      let recorder: MediaRecorder;
-      try {
-        recorder = new MediaRecorder(mediaStream);
-      } catch (err) {
-        console.error("This browser cannot record audio", err);
-        stopMic();
-        setPhase("error");
-        return;
-      }
-
-      chunksRef.current = [];
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunksRef.current.push(event.data);
-      };
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, {
-          type: recorder.mimeType || "audio/webm",
-        });
-        chunksRef.current = [];
-        // The clip is final — let the microphone go whatever happens next.
-        stopMic();
-
-        const heldMs = Date.now() - startedAtRef.current;
-        if (blob.size === 0 || heldMs < MIN_HOLD_MS) {
-          setPhase("idle");
-          return;
-        }
-
-        setProcessing(true);
-        setPhase("processing");
-        sendAudio(blob)
-          .then((allCorrect) => {
-            setProcessing(false);
-            setPhase("idle");
-            play(allCorrect ? "success" : "error", {
-              theme: "bubble",
-            });
-            // A perfect recitation moves the learner on to the next ayah.
-            if (allCorrect) selectNextVerse();
-          })
-          .catch((err) => {
-            console.error(err);
-            setProcessing(false);
-            setPhase("error");
-          });
-      };
-      recorder.addEventListener("error", (event) => {
-        console.error("Recording failed", event);
-        if (phaseRef.current === "recording") setPhase("error");
-      });
-
-      recorder.start();
-      recorderRef.current = recorder;
-      startedAtRef.current = Date.now();
-      setElapsedMs(0);
-      setPhase("recording");
-    },
-    [sendAudio, selectNextVerse, setPhase, setProcessing, stopMic],
-  );
-
-  /** Press-and-hold begins: ask for the mic, then roll as soon as it lands. */
-  const beginHold = useCallback(async () => {
-    if (!ready || holdingRef.current) return;
-    void reciteTooltipHint.dismiss();
-    const current = phaseRef.current;
-    if (
-      current === "requesting" ||
-      current === "recording" ||
-      current === "processing"
-    ) {
-      return;
-    }
-
-    holdingRef.current = true;
-    press("tap", { theme: "bubble" });
-    // The reference recitation would bleed into the microphone.
-    stopRecitation();
-    setPhase("requesting");
-
-    let mediaStream: MediaStream | null = null;
-    try {
-      mediaStream = await startMic();
-    } catch (err) {
-      console.error(err);
-    }
-
-    // Let go while the permission prompt was still up — nothing to record.
-    if (!mediaStream || !holdingRef.current) {
-      if (mediaStream) stopMic();
-      holdingRef.current = false;
-      if (phaseRef.current === "requesting") setPhase("idle");
-      return;
-    }
-
-    if (verse) setRecitedVerses(verse.id, []);
-    startRecorder(mediaStream);
-  }, [
-    ready,
-    reciteTooltipHint,
-    setPhase,
-    stopRecitation,
-    verse,
-    setRecitedVerses,
-    startRecorder,
-    startMic,
-    stopMic,
-  ]);
-
-  /** Letting go (or leaving) ends the recording and sends the audio off. */
-  const endHold = useCallback(() => {
-    if (!holdingRef.current) return;
-    holdingRef.current = false;
-    release("tap");
-
-    // Still waiting on the permission dialog — beginHold() cleans up for us.
-    if (phaseRef.current !== "recording") return;
-
-    const recorder = recorderRef.current;
-    recorderRef.current = null;
-    if (!recorder || recorder.state === "inactive") {
-      setPhase("idle");
-      return;
-    }
-
-    try {
-      // `onstop` finalizes the clip, stops the mic and uploads it.
-      recorder.stop();
-    } catch (err) {
-      console.error(err);
-      stopMic();
-      setPhase("idle");
-    }
-  }, [setPhase, stopMic]);
-
-  /**
-   * Losing focus only matters mid-recording — the microphone permission
-   * prompt blurs the page, and cancelling the hold there would drop the clip
-   * the user is in the middle of taking.
-   */
-  const endHoldIfRecording = useCallback(() => {
-    if (phaseRef.current === "recording") endHold();
-  }, [endHold]);
-
-  // Releasing outside the button or cancelling the gesture always ends the
-  // hold — the recording never outlives the press.
   useEffect(() => {
     const releaseHold = () => endHold();
     window.addEventListener("pointerup", releaseHold);
     window.addEventListener("pointercancel", releaseHold);
-    window.addEventListener("blur", endHoldIfRecording);
+    window.addEventListener("blur", endHold);
 
     return () => {
       window.removeEventListener("pointerup", releaseHold);
       window.removeEventListener("pointercancel", releaseHold);
-      window.removeEventListener("blur", endHoldIfRecording);
+      window.removeEventListener("blur", endHold);
     };
-  }, [endHold, endHoldIfRecording]);
+  }, [endHold]);
 
-  useEffect(() => {
-    return () => {
-      holdingRef.current = false;
-      const recorder = recorderRef.current;
-      recorderRef.current = null;
-      if (recorder && recorder.state !== "inactive") {
-        try {
-          recorder.stop();
-        } catch {
-          /* already gone */
-        }
-      }
-      stopMic();
-    };
-  }, [stopMic]);
-
-  // Ticking clock while the user is speaking; `startRecorder` zeroes it.
-  useEffect(() => {
-    if (phase !== "recording") return;
-    const id = window.setInterval(
-      () => setElapsedMs(Date.now() - startedAtRef.current),
-      250,
-    );
-    return () => window.clearInterval(id);
-  }, [phase]);
-
-  const variant = PHASE_VARIANTS[phase];
-
-  // Audio playback needs the chapter file, not microphone support.
-  const playable = Boolean(recitation?.audioUrl && verse);
-
-  const hint = !supported
-    ? "Recording is not supported in this browser"
-    : !ready
-      ? "Select a verse to start reciting"
-      : phase === "requesting"
-        ? "Waiting for microphone access…"
-        : phase === "recording"
-          ? "Release to stop"
-          : phase === "processing"
-            ? "Checking your recitation…"
-            : phase === "error"
-              ? "Something went wrong — try again"
-              : micState === "denied"
-                ? "Microphone blocked — allow it to continue"
-                : " "; // Hold to recite
+  const variant = useMemo<Partial<ElevatedButtonVariant>>(() => {
+    if (state.matches("recitation.recording" as never)) return "destructive";
+    if (state.matches("recitation.evaluating" as never)) return "secondary";
+    return "primary";
+  }, [state]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key !== " " && event.key !== "Enter") return;
@@ -501,20 +69,30 @@ export function ChapterFooter() {
     endHold();
   };
 
+  const hint = useMemo(() => {
+    if (state.matches("recitation.evaluating" as never))
+      return "Checking your recitation…";
+    if (state.matches("recitation.recording" as never))
+      return "Release to stop";
+    return "Select a verse to start recording";
+  }, [state]);
+
+  const isRecording = state.matches("recitation.recording" as never);
+  const isEvaluating = state.matches("recitation.evaluating" as never);
+
   return (
     <footer className="fixed inset-x-0 bottom-0 z-50 pointer-events-none flex justify-center">
       <div className="relative flex w-full max-w-2xl  flex-col items-center  px-4 pb-4">
-        {/* Scrolling verses fade out behind the control. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-background via-background/30 to-transparent"
+          className="pointer-events-none absolute inset-0 -z-10 bg-linear-to-t from-background via-background/30 to-transparent"
         />
 
         <div className="flex items-center gap-2">
           <ElevatedButton
             variant={variant}
             size="wide"
-            disabled={!ready}
+            disabled={isEvaluating}
             aria-label={
               isRecording
                 ? "Release to stop recording"
@@ -531,7 +109,7 @@ export function ChapterFooter() {
             onContextMenu={(event) => event.preventDefault()}
             onKeyDown={handleKeyDown}
             onKeyUp={handleKeyUp}
-            onBlur={endHoldIfRecording}
+            onBlur={endHold}
           >
             {reciteTooltipHint.visible && (
               <motion.div
@@ -557,11 +135,11 @@ export function ChapterFooter() {
               </motion.div>
             )}
             <span className="grid place-items-center">
-              {phase === "processing" ? (
+              {isEvaluating ? (
                 <Spinner className="size-5" />
               ) : isRecording ? (
                 <RecordVisualizer
-                  stream={stream}
+                  stream={recitationContext.stream ?? null}
                   active={isRecording}
                   bars={5}
                 />
@@ -578,8 +156,12 @@ export function ChapterFooter() {
 
           <ElevatedButton
             variant="play"
-            disabled={!playable}
-            onClick={toggleRecitation}
+            onClick={() => {
+              play("select", { theme: "bubble" });
+              send({
+                type: !playing ? "LISTEN" : "PAUSE",
+              });
+            }}
             className="pointer-events-auto"
           >
             <span className="grid place-items-center">
@@ -605,15 +187,19 @@ export function ChapterFooter() {
               {formatElapsed(elapsedMs)}
             </span>
           )}
-          {phase === "processing" && (
+          {isEvaluating && (
             <Spinner className="size-3.5 text-muted-foreground" />
           )}
           <span
             className={cn(
-              isRecording ? "text-foreground" : "text-muted-foreground",
+              error
+                ? "text-destructive"
+                : isRecording
+                  ? "text-foreground"
+                  : "text-muted-foreground",
             )}
           >
-            {hint}
+            {error ?? hint}
           </span>
         </div>
       </div>

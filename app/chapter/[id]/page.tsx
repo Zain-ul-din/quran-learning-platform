@@ -1,7 +1,7 @@
 import { ChapterFooter } from "@/components/chapter/chapter-footer";
 import { ChapterHarness } from "@/components/chapter/chapter-harness";
 import { ChapterHeader } from "@/components/chapter/chapter-header";
-import { Verses } from "@/components/verses/verses";
+import { Verses } from "@/components/chapter/verses";
 import { qfClient } from "@/lib/qf-client";
 import { ChapterId } from "@quranjs/api";
 import { notFound } from "next/navigation";

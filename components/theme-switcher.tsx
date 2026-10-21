@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { useTheme } from "next-themes";
+import { useTheme } from "@teispace/next-themes";
 import { MorphIcon } from "morphicons/react";
 import { Moon02Icon, Sun01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
