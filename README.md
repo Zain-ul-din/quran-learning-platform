@@ -16,6 +16,7 @@ A Quran recitation assistant — pick a chapter, read verses in Arabic with tran
   <i>Evaluating...</i>
     <br />  <br />
     For the current multi-layer system, it is supposed to run evals against an audio and text classification model. Evaluation data includes audio from different dialects and transcribed text from the QF API.
+    <a href="https://github.com/Zain-ul-din/quran-learning-platform/tree/main/evals">Get Started from here</a>
   </td>
 </tr>
 </table>
