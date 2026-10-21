@@ -17,9 +17,24 @@ export const recordAudio = fromCallback<
 
   async function start() {
     try {
+      const permissionStatus = await navigator.permissions.query({
+        name: "microphone",
+      });
+      const permissionBefore = permissionStatus.state;
+
       stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
       });
+
+      if (
+        permissionBefore != "granted" &&
+        permissionStatus.state === "granted"
+      ) {
+        return sendBack({
+          type: "audio.recoded",
+          blob: new Blob([], { type: recorder?.mimeType }),
+        });
+      }
 
       sendBack({ type: "audio.stream", stream });
 
