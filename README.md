@@ -61,7 +61,7 @@ A Quran recitation assistant — pick a chapter, read verses in Arabic with tran
 | [Tailwind CSS 4](https://tailwindcss.com/)                         | Styling                                             |
 | [shadcn/ui](https://ui.shadcn.com/)                                | UI components                                       |
 | [Motion](https://motion.dev/)                                      | Animations                                          |
-| [Zustand](https://zustand.docs.pmnd.rs/)                           | Client state management                             |
+| [XState](https://stately.ai/docs/xstate)                           | Client state management (state machines)            |
 | [Quran Foundation API](https://quran.foundation/) (`@quranjs/api`) | Chapters, verses & translations                     |
 | [OpenAI](https://openai.com/) (Vercel AI SDK)                      | Transcription & recitation feedback                 |
 
